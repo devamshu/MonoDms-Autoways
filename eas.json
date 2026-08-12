@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "version": ">= 18.13.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://newdms.pagodalabs.com.np/",
+        "EXPO_PUBLIC_IMAGE_BASE_URL": "https://newdms.pagodalabs.com.np/"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://newdms.pagodalabs.com.np/",
+        "EXPO_PUBLIC_IMAGE_BASE_URL": "https://newdms.pagodalabs.com.np/"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
