@@ -35,6 +35,7 @@ export interface VehicleFormData {
   chassis_no: string;
   battery_no: string;
   motor_no: string;
+  frame_no: string;
 }
 
 interface VehicleFormState {
@@ -57,6 +58,7 @@ const initialFormState: VehicleFormState = {
     chassis_no: "",
     battery_no: "",
     motor_no: "",
+    frame_no: "",
   },
   isSubmitting: false,
   error: null,

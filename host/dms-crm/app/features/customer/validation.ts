@@ -11,12 +11,9 @@ export const STEP_REQUIRED_FIELDS: Record<
   (keyof CustomerFormData)[]
 > = {
   1: [
-    "first_name",
-    "last_name",
+    "name",
     "inquiry_kind",
-    "gender",
     "address",
-    "country",
     "city",
     "source_type",
     "phone",
@@ -29,12 +26,9 @@ export const STEP_REQUIRED_FIELDS: Record<
 };
 
 const FIELD_LABELS: Partial<Record<keyof CustomerFormData, string>> = {
-  first_name: "First name",
-  last_name: "Last name",
+  name: "Name",
   inquiry_kind: "Inquiry kind",
-  gender: "Gender",
   address: "Address",
-  country: "Country",
   city: "City",
   source_type: "Source type",
   phone: "Phone",
@@ -72,17 +66,11 @@ export function validateStep(
   }
 
   if (step === 3) {
-    // Every entry is submitted, so a blank row would post an empty contact
-    // rather than being ignored — validate all of them, not just the first.
+    // Every phone entry is submitted, so validate all of them.
+    // Email entries are optional — blanks are filtered out before sending.
     for (const entry of phoneEntries) {
       if (isBlank(entry.phone)) {
         errors[`phone:${entry.id}`] = "Contact number is required";
-      }
-    }
-
-    for (const entry of emailEntries) {
-      if (isBlank(entry.email)) {
-        errors[`email:${entry.id}`] = "Email is required";
       }
     }
   }
@@ -102,7 +90,7 @@ export function clearFieldError(
 }
 
 /**
- * Clears step-3 entry errors that the user has since satisfied. Entry rows are
+ * Clears step-3 phone errors that the user has since satisfied. Entry rows are
  * replaced wholesale on every keystroke, so there is no single field key to
  * drop — the filled ones are recomputed instead. Only ever removes errors, and
  * returns the same object when nothing changed so no needless render occurs.
@@ -110,12 +98,11 @@ export function clearFieldError(
 export function clearFilledContactErrors(
   errors: FieldErrors,
   phoneEntries: PhoneEntry[],
-  emailEntries: EmailEntry[],
 ): FieldErrors {
-  const satisfied = [
-    ...phoneEntries.filter((e) => !isBlank(e.phone)).map((e) => `phone:${e.id}`),
-    ...emailEntries.filter((e) => !isBlank(e.email)).map((e) => `email:${e.id}`),
-  ].filter((key) => key in errors);
+  const satisfied = phoneEntries
+    .filter((e) => !isBlank(e.phone))
+    .map((e) => `phone:${e.id}`)
+    .filter((key) => key in errors);
 
   if (!satisfied.length) return errors;
 

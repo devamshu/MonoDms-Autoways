@@ -173,11 +173,10 @@ export function AddVehicleForm() {
   const handleSelectMode = (mode: VehicleMode) => {
     dispatch(updateFormField({ key: "vehicle_mode", value: mode }));
     if (mode === "ev") {
-      // Engine number doesn't apply to EVs.
       dispatch(updateFormField({ key: "engine_no", value: "" }));
-    } else {
-      // Battery and motor numbers don't apply to petrol/diesel.
       dispatch(updateFormField({ key: "battery_no", value: "" }));
+    } else {
+      dispatch(updateFormField({ key: "frame_no", value: "" }));
       dispatch(updateFormField({ key: "motor_no", value: "" }));
     }
   };
@@ -191,8 +190,10 @@ export function AddVehicleForm() {
       manufacturing_year: formData.manufacturing_year || null,
       vehicle_type: formData.vehicle_type ?? null,
       vehicle_mode: formData.vehicle_mode ?? null,
-      frame_no: null,
-      battery_no: isEV
+      frame_no: isEV
+        ? formData.frame_no?.trim().toUpperCase() || null
+        : null,
+      battery_no: isPetrolOrDiesel
         ? formData.battery_no?.trim().toUpperCase() || null
         : null,
       motor_no: isEV ? formData.motor_no?.trim().toUpperCase() || null : null,
@@ -645,20 +646,21 @@ export function AddVehicleForm() {
                   </YStack>
                 )}
 
-                {/* Battery Number — EV only */}
+                {/* Frame No — EV only */}
                 {isEV && (
                   <YStack gap="$2">
-                    <FieldLabel>Battery Number</FieldLabel>
+                    <FieldLabel>Frame No</FieldLabel>
                     <AppInput
-                      placeholder="Enter battery number"
-                      value={formData?.battery_no || ""}
+                      placeholder="Enter frame number"
+                      value={formData?.frame_no || ""}
                       onChangeText={(text) =>
                         dispatch(
-                          updateFormField({ key: "battery_no", value: text }),
+                          updateFormField({ key: "frame_no", value: text }),
                         )
                       }
                       autoCapitalize="characters"
                       disabled={isSubmitting}
+                      maxLength={255}
                     />
                   </YStack>
                 )}

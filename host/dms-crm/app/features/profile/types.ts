@@ -1,3 +1,8 @@
+export interface UserGroup {
+  id: number;
+  name: string;
+}
+
 export interface UserProfile {
   id: number;
   username: string;
@@ -7,6 +12,9 @@ export interface UserProfile {
   email: string;
   phone: string | null;
   image: string | null;
+  is_superuser?: boolean;
+  groups?: UserGroup[];
+  authorities?: string[];
 }
 
 export interface ChangePassword {

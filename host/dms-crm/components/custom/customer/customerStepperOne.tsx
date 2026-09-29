@@ -1,42 +1,42 @@
 import { CustomerFormData, MasterItem } from "../../../app/features/customer/types";
 import { FieldErrors } from "../../../app/features/customer/validation";
-import { Dropdown } from "../../../components/custom/dropdown";
+import { Dropdown, DropdownOption } from "../../../components/custom/dropdown";
 import { AppInput } from "../../../components/custom/input";
 import { Text, YStack } from "tamagui";
 import { RequiredLabel } from "../requiredLabel";
-
-const GENDER_OPTIONS = [
-  { label: "Male", value: "Male" },
-  { label: "Female", value: "Female" },
-  { label: "Other", value: "Other" },
-];
 
 type Props = {
   form: CustomerFormData;
   onChange: (key: keyof CustomerFormData, value: string) => void;
   inquiryKinds: MasterItem[];
-  countries: MasterItem[];
   cities: MasterItem[];
   sourceTypes: MasterItem[];
   inquiryKindsLoading: boolean;
-  countriesLoading: boolean;
   citiesLoading: boolean;
   sourceTypesLoading: boolean;
   errors?: FieldErrors;
+  isAdmin?: boolean;
+  employeeOptions?: DropdownOption[];
+  employeesLoading?: boolean;
+  employeesLoadingMore?: boolean;
+  onEmployeesEndReached?: () => void;
 };
 
 export function CustomerStepperOne({
   form,
   onChange,
   inquiryKinds,
-  countries,
   cities,
   sourceTypes,
   inquiryKindsLoading,
-  countriesLoading,
   citiesLoading,
   sourceTypesLoading,
   errors = {},
+  isAdmin = false,
+  employeeOptions = [],
+  employeesLoading = false,
+  employeesLoadingMore = false,
+  onEmployeesEndReached,
 }: Props) {
   const toOptions = (items: MasterItem[]) =>
     items.map((i) => ({ label: i.name, value: i.id.toString() }));
@@ -48,33 +48,12 @@ export function CustomerStepperOne({
       </Text>
 
       <YStack gap="$1">
-        <RequiredLabel>First Name</RequiredLabel>
+        <RequiredLabel>Name</RequiredLabel>
         <AppInput
-          value={form.first_name}
-          onChangeText={(v) => onChange("first_name", v)}
-          placeholder="Enter first name"
-          error={errors.first_name}
-        />
-      </YStack>
-
-      <YStack gap="$1">
-        <Text fontSize="$3" color="$color">
-          Middle Name
-        </Text>
-        <AppInput
-          value={form.middle_name}
-          onChangeText={(v) => onChange("middle_name", v)}
-          placeholder="Enter middle name"
-        />
-      </YStack>
-
-      <YStack gap="$1">
-        <RequiredLabel>Last Name</RequiredLabel>
-        <AppInput
-          value={form.last_name}
-          onChangeText={(v) => onChange("last_name", v)}
-          placeholder="Enter last name"
-          error={errors.last_name}
+          value={form.name}
+          onChangeText={(v) => onChange("name", v)}
+          placeholder="Enter name"
+          error={errors.name}
         />
       </YStack>
 
@@ -89,16 +68,6 @@ export function CustomerStepperOne({
         error={errors.inquiry_kind}
       />
 
-      <Dropdown
-        label="Gender"
-        required
-        placeholder="Select"
-        options={GENDER_OPTIONS}
-        value={form.gender}
-        onChange={(v) => onChange("gender", v)}
-        error={errors.gender}
-      />
-
       <YStack gap="$1">
         <RequiredLabel>Address</RequiredLabel>
         <AppInput
@@ -108,17 +77,6 @@ export function CustomerStepperOne({
           error={errors.address}
         />
       </YStack>
-
-      <Dropdown
-        label="Country"
-        required
-        placeholder={countriesLoading ? "Loading..." : "Select"}
-        options={toOptions(countries)}
-        value={form.country ?? ""}
-        onChange={(v) => onChange("country" as keyof CustomerFormData, v)}
-        disabled={countriesLoading}
-        error={errors.country}
-      />
 
       <Dropdown
         label="City"
@@ -141,6 +99,20 @@ export function CustomerStepperOne({
         disabled={sourceTypesLoading}
         error={errors.source_type}
       />
+
+      {isAdmin && (
+        <Dropdown
+          label="Assigned To"
+          placeholder={employeesLoading ? "Loading..." : "Select employee"}
+          options={employeeOptions}
+          value={form.assigned_to}
+          onChange={(v) => onChange("assigned_to", v)}
+          disabled={employeesLoading}
+          loading={employeesLoading}
+          loadingMore={employeesLoadingMore}
+          onEndReached={onEmployeesEndReached}
+        />
+      )}
 
       <YStack gap="$1">
         <RequiredLabel>Phone</RequiredLabel>

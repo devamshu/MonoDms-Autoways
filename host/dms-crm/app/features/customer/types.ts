@@ -113,23 +113,22 @@ export interface AddCustomerEmailPayload {
 }
 
 export interface AddCustomerPayload {
-  first_name: string;
-  middle_name?: string;
-  last_name: string;
-  gender: string;
-  // Optional, but the serializer rejects "" — omit it rather than sending blank.
+  name: string;
+  phone: AddCustomerPhonePayload[];
+  email?: AddCustomerEmailPayload[];
+  contact_person?: string;
   address?: string;
   city?: number;
-  country?: number;
-  phone: AddCustomerPhonePayload[];
-  email: AddCustomerEmailPayload[];
-  // Array of master-vehicle ids for the customer's preferred vehicles.
+  district?: number;
+  zip_code?: string;
+  occupation?: number;
   vehicle: number[];
   inquiry_source: number;
   kind: number;
   remarks?: string;
   followup_after?: number;
   customer?: number;
+  assigned_to?: number;
   existing_vehicle_name?: string;
   our_vehicle_name?: string;
   existing_vehicle_count?: number;
@@ -155,16 +154,12 @@ export type StagedVehicle = {
 };
 
 export type CustomerFormData = {
-  first_name: string;
-  middle_name: string;
-  last_name: string;
+  name: string;
   inquiry_kind: string;
-  gender: string;
   address: string;
   source_type: string;
   remarks: string;
   phone: string;
-  country: string;
   city: string;
   phone_category: "home" | "office" | "mobile" | "other";
   country_code: string;
@@ -173,6 +168,7 @@ export type CustomerFormData = {
   pref_vehicle: string;
   pref_variant: string;
   pref_color: string;
+  assigned_to: string;
   existing_vehicle_name: string;
   our_vehicle_name: string;
   existing_vehicle_count: string;

@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { ScrollView } from "react-native";
 import { Spinner, Text, YStack } from "tamagui";
-import { toast } from "../../../components/custom/toast";
-import { useAppDispatch, useAppSelector } from "../../../../../app/features/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+} from "../../../../../app/features/hooks";
 import { DiscountActionButtons } from "../../../components/custom/buttons/discountActionButton";
 import { DetailCard } from "../../../components/custom/card/detailCard";
 import { GenericModal } from "../../../components/custom/model/genericModal";
+import { toast } from "../../../components/custom/toast";
 import { UpdateDiscountDrawer } from "../../../components/custom/updateDiscountDrawer";
 import { Images } from "../../../constants/image";
 import {
-    approveDiscount,
-    fetchDiscountById,
-    rejectDiscount,
-    updateDiscountAmount,
+  approveDiscount,
+  fetchDiscountById,
+  rejectDiscount,
+  updateDiscountAmount,
 } from "../../features/discount/store/discount.thunks";
 import { formatValue } from "../../utils/validator/emptyFieldValidator";
 
@@ -133,7 +136,6 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
   // Check if actions are disabled based on current status
   const isActionDisabled = discount.status !== "pending";
 
-
   return (
     <YStack flex={1} backgroundColor="$backgroundSecondary">
       <ScrollView>
@@ -146,15 +148,7 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
                 label: "Requested Amount",
                 value: formatValue(discount.requested_discount_amount),
               },
-              {
-                label: "Given Amount",
-                value: formatValue(discount.given_discount_amount),
-              },
-              {
-                label: "Max Allowed",
-                value: formatValue(discount.max_allowed_amount),
-              },
-              { label: "Policy", value: formatValue(discount.policy_name) },
+
               { label: "Vehicle", value: formatValue(discount.vehicle_name) },
               {
                 label: "Requested By",
@@ -170,10 +164,7 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
                 label: "Rejected By",
                 value: formatValue(discount.rejected_by_name),
               },
-              {
-                label: "Intended For",
-                value: formatValue(discount.intended_for),
-              },
+
               { label: "Remarks", value: formatValue(discount.remarks) },
               {
                 label: "Status",

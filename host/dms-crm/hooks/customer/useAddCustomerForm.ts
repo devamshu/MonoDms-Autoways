@@ -12,13 +12,9 @@ import { useAppDispatch, useAppSelector } from "@/app/features/hooks";
 import { useState } from "react";
 
 export const INITIAL_FORM: CustomerFormData = {
-  first_name: "",
-  middle_name: "",
-  last_name: "",
+  name: "",
   inquiry_kind: "",
-  gender: "",
   address: "",
-  country: "",
   city: "",
   source_type: "",
   remarks: "",
@@ -30,6 +26,7 @@ export const INITIAL_FORM: CustomerFormData = {
   pref_vehicle: "",
   pref_variant: "",
   pref_color: "",
+  assigned_to: "",
   existing_vehicle_name: "",
   our_vehicle_name: "",
   existing_vehicle_count: "",
@@ -90,20 +87,18 @@ export function useAddCustomerForm(onClose: () => void) {
         : [];
 
     return {
-      first_name: form.first_name,
-      ...(form.middle_name && { middle_name: form.middle_name }),
-      last_name: form.last_name,
-      gender: form.gender,
-      // Omitted when empty, like every other optional below. Sending "" trips
-      // the serializer's allow_blank=False and 400s with
-      // "This field may not be blank."
+      name: form.name,
       ...(form.address && { address: form.address }),
+      ...(form.city && { city: Number(form.city) }),
       phone: phones,
-      email: emails,
+      ...(emails.length > 0 && { email: emails }),
       vehicle: vehicles,
       inquiry_source: Number(form.source_type),
       kind: Number(form.inquiry_kind),
       ...(form.remarks && { remarks: form.remarks }),
+      ...(form.assigned_to && {
+        assigned_to: Number(form.assigned_to),
+      }),
       ...(form.existing_vehicle_name && {
         existing_vehicle_name: form.existing_vehicle_name,
       }),

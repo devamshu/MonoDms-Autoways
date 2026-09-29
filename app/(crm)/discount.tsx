@@ -57,11 +57,11 @@ export default function DiscountScreen() {
           emptyMessage="No discount requests found"
           isLoading={loading}
           defaultVisibleColumns={[
-            "id",
-            "is_approved",
-            "inquiry",
+            "sn",
+            "inquiry_no",
+            "inquiry_name",
             "requested_discount_amount",
-            "is_approved",
+            "status",
             "vehicle_name",
           ]}
           showCard

@@ -8,7 +8,7 @@ import { StepIndicator } from "../../../components/custom/customer/stepIndicator
 import { GenericModal } from "../../../components/custom/model/genericModal";
 import { useSlideOpen } from "../../../../../components/auth/slideOpen";
 import { BitsImages } from "../../../constants/bits";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -29,12 +29,11 @@ import {
 } from "../../../app/features/customer/store/customer.slice";
 import {
     fetchMasterCities,
-    fetchMasterCountries,
     fetchMasterInquiryKinds,
     fetchMasterSourceTypes,
     fetchMasterVehicles,
     fetchDmsVehiclesForVehicle,
-} from "../../../app/features/master/store/master.thunks";
+} from "../../features/master/store/master.thunks";
 import { resetDmsVehicles } from "../../../app/features/master/store/master.slice";
 import {
     clearFieldError,
@@ -42,6 +41,7 @@ import {
     FieldErrors,
     validateStep,
 } from "../../features/customer/validation";
+import { useEmployees } from "../../../hooks/useEmployees";
 
 const successImage = BitsImages.success;
 const discardImage = BitsImages.discard;
@@ -77,31 +77,43 @@ export function AddCustomerForm() {
 
   const {
     inquiryKinds,
-    countries,
     cities,
     sourceTypes,
     vehicles,
     dmsVehicles,
     inquiryKindsLoading,
-    countriesLoading,
     citiesLoading,
     sourceTypesLoading,
     vehiclesLoading,
     dmsVehiclesLoading,
   } = useAppSelector((state) => ({
     inquiryKinds: state.crmMaster.inquiryKinds,
-    countries: state.crmMaster.countries,
     cities: state.crmMaster.cities,
     sourceTypes: state.crmMaster.sourceTypes,
     vehicles: state.crmMaster.vehicles,
     dmsVehicles: state.crmMaster.dmsVehicles,
     inquiryKindsLoading: state.crmMaster.inquiryKindsLoading,
-    countriesLoading: state.crmMaster.countriesLoading,
     citiesLoading: state.crmMaster.citiesLoading,
     sourceTypesLoading: state.crmMaster.sourceTypesLoading,
     vehiclesLoading: state.crmMaster.vehiclesLoading,
     dmsVehiclesLoading: state.crmMaster.dmsVehiclesLoading,
   }));
+
+  const profile = useAppSelector((state) => state.crmProfile.profile);
+  const isAdmin = useMemo(() => {
+    if (!profile) return false;
+    if (profile.authorities?.includes("SUPERUSER")) return true;
+    if (profile.authorities?.includes("ADMIN")) return true;
+    if (profile.is_superuser) return true;
+    return profile.groups?.some((g) => g.name === "Admin") ?? false;
+  }, [profile]);
+
+  const {
+    options: employeeOptions,
+    loading: employeesLoading,
+    loadingMore: employeesLoadingMore,
+    loadMore: onEmployeesEndReached,
+  } = useEmployees(isAdmin);
 
   useEffect(() => {
     // Clear any previous errors when form mounts
@@ -109,7 +121,6 @@ export function AddCustomerForm() {
 
     // Load master data
     dispatch(fetchMasterInquiryKinds());
-    dispatch(fetchMasterCountries());
     dispatch(fetchMasterCities());
     dispatch(fetchMasterSourceTypes());
     dispatch(fetchMasterVehicles());
@@ -232,14 +243,17 @@ export function AddCustomerForm() {
                   setErrors((prev) => clearFieldError(prev, key));
                 }}
                 inquiryKinds={inquiryKinds}
-                countries={countries}
                 cities={cities}
                 sourceTypes={sourceTypes}
                 inquiryKindsLoading={inquiryKindsLoading}
-                countriesLoading={countriesLoading}
                 citiesLoading={citiesLoading}
                 sourceTypesLoading={sourceTypesLoading}
                 errors={errors}
+                isAdmin={isAdmin}
+                employeeOptions={employeeOptions}
+                employeesLoading={employeesLoading}
+                employeesLoadingMore={employeesLoadingMore}
+                onEmployeesEndReached={onEmployeesEndReached}
               />
             )}
             {currentStep === 2 && (
@@ -263,14 +277,11 @@ export function AddCustomerForm() {
                 onPhoneEntriesChange={(entries) => {
                   dispatch(setPhoneEntries(entries));
                   setErrors((prev) =>
-                    clearFilledContactErrors(prev, entries, emailEntries),
+                    clearFilledContactErrors(prev, entries),
                   );
                 }}
                 onEmailEntriesChange={(entries) => {
                   dispatch(setEmailEntries(entries));
-                  setErrors((prev) =>
-                    clearFilledContactErrors(prev, phoneEntries, entries),
-                  );
                 }}
                 errors={errors}
               />
