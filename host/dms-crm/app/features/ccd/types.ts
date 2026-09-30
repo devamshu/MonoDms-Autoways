@@ -554,3 +554,45 @@ export interface JobCardDetailResponse {
 }
 
 export type CCDModulesListResponse = CCDModule[];
+
+// ============ Followup Types ============
+
+export interface Followup {
+  id: number;
+  inquiry: number;
+  inquiry_name: string;
+  followup_date: string;
+  followup_date_np: string | null;
+  next_followup_date: string | null;
+  next_followup_date_np: string | null;
+  time: string;
+  priority: string;
+  executive: number;
+  executive_name: string;
+  followup_type: string;
+  followup_details: string;
+  is_activity: boolean;
+  fiscal_year: number | null;
+  created_at: string;
+}
+
+export interface FollowupPayload {
+  inquiry: number;
+  followup_date: string;
+  followup_date_np?: string | null;
+  next_followup_date?: string | null;
+  next_followup_date_np?: string | null;
+  time: string;
+  priority?: string;
+  executive?: number;
+  followup_type: string;
+  followup_details: string;
+  fiscal_year?: number | null;
+}
+
+export interface FollowupListParams {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  ordering?: string;
+}

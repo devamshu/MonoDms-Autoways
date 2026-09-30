@@ -61,7 +61,7 @@ export default function CustomerScreen() {
           emptyMessage="No customers found"
           isLoading={loading}
           defaultVisibleColumns={[
-            "id",
+            "sn",
             "name",
             "kind_name",
             "is_converted_to_deal",

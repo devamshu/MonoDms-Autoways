@@ -14,20 +14,16 @@ const safeToString = (value: any): string => {
 
 export const getCustomerColumns = (onPress: (id: string) => void): Column[] => [
   {
-    id: "id",
+    id: "sn",
     label: "SN",
     accessor: "id",
-    sortable: true,
     width: 60,
     align: "center",
-    render: (value: any) => {
-      const safeValue = safeToString(value);
-      return (
-        <Text fontWeight="500" numberOfLines={1}>
-          {safeValue || "—"}
-        </Text>
-      );
-    },
+    render: (_value: any, _row: any, index?: number) => (
+      <Text fontWeight="500" numberOfLines={1}>
+        {index != null ? index + 1 : "—"}
+      </Text>
+    ),
   },
   {
     id: "inq_no",

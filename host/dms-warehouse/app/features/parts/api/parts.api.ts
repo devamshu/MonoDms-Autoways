@@ -15,14 +15,11 @@ export const partsApi = {
     data?: PartsInventoryResponse;
     message?: string;
   }> {
-    const requestKey = generateRequestKey(
-      "/stockyard-parts-inventory/",
-      params,
-    );
+    const requestKey = generateRequestKey("/logistic-parts-inventory/", params);
 
     return dedupRequest(requestKey, async () => {
       const response = await apiClient.get<PartsInventoryResponse>(
-        "/stockyard-parts-inventory/",
+        "/logistic-parts-inventory/",
         { params },
       );
 

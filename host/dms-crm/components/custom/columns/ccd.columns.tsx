@@ -39,7 +39,10 @@ export const transformInquiryRows = (rows: any[]) =>
   (rows ?? []).map((item, index) => ({
     ...item,
     sn: index + 1,
-    formatted_created_date: fmtDate(item.created_date),
+    contact: item.contact || item.phone?.[0]?.phone || null,
+    phone_number: item.phone?.[0]?.phone ?? null,
+    email_address: item.email?.[0]?.email ?? null,
+    formatted_created_date: fmtDate(item.created_date ?? item.created_at),
   }));
 
 export const transformRetailRows = (rows: any[]) =>
@@ -54,6 +57,8 @@ export const transformRetailRows = (rows: any[]) =>
       null,
     phone_number: item.phone?.[0]?.phone ?? null,
     email_address: item.email?.[0]?.email ?? null,
+    chassis_no: item.vehicle?.chassis_no ?? null,
+    formatted_sales_date: fmtDate(item.sales_date),
     formatted_created_date: fmtDate(item.created_date),
   }));
 
@@ -65,9 +70,7 @@ export const transformPsfRows = (rows: any[]) =>
     formatted_closed_date: fmtDate(item.closed_date),
   }));
 
-export const getCcdInquiryColumns = (
-  onPress: (id: string) => void,
-): Column[] => [
+export const getCcdInquiryColumns = (): Column[] => [
   snColumn,
   {
     id: "inq_no",
@@ -75,16 +78,8 @@ export const getCcdInquiryColumns = (
     accessor: "inq_no",
     width: 120,
     sortable: true,
-    render: (value: string | null, row: any) => (
-      <Text
-        numberOfLines={1}
-        color="$primary"
-        fontWeight="500"
-        onPress={(e) => {
-          e.stopPropagation(); 
-          onPress(row.id.toString());
-        }}
-      >
+    render: (value: string | null) => (
+      <Text numberOfLines={1} color="$primary" fontWeight="500">
         {formatValue(value)}
       </Text>
     ),
@@ -123,9 +118,8 @@ export const getCcdInquiryColumns = (
   },
   {
     id: "formatted_created_date",
-    label: "Created Date",
+    label: "Date",
     accessor: "formatted_created_date",
-    // Display value is built client-side; sort on the real backend field.
     sortKey: "created_date",
     width: 140,
     sortable: true,
@@ -157,9 +151,6 @@ export const getCcdRetailColumns = (
       </Text>
     ),
   },
-  // Customer / Phone / Email are flattened out of nested objects by
-  // transformRetailRows, so their column ids are display-only. Order on the
-  // serializer field the row actually carries.
   {
     id: "customer_name",
     label: "Customer",
@@ -167,6 +158,24 @@ export const getCcdRetailColumns = (
     sortKey: "customer",
     width: 180,
     sortable: true,
+    render: textCell,
+  },
+  {
+    id: "formatted_sales_date",
+    label: "Sales Date",
+    accessor: "formatted_sales_date",
+    sortKey: "sales_date",
+    width: 140,
+    sortable: true,
+    render: textCell,
+  },
+  {
+    id: "chassis_no",
+    label: "Chassis No",
+    accessor: "chassis_no",
+    sortKey: "vehicle.chassis_no",
+    width: 160,
+    sortable: false,
     render: textCell,
   },
   {
@@ -187,14 +196,87 @@ export const getCcdRetailColumns = (
     sortable: true,
     render: textCell,
   },
+];
+
+export const transformFollowupRows = (rows: any[]) =>
+  (rows ?? []).map((item, index) => ({
+    ...item,
+    sn: index + 1,
+    formatted_followup_date: fmtDate(item.followup_date),
+    formatted_next_followup_date: fmtDate(item.next_followup_date),
+    formatted_time: item.time
+      ? item.time.length > 8
+        ? item.time.slice(0, 8)
+        : item.time
+      : null,
+  }));
+
+export const getFollowupColumns = (): Column[] => [
+  snColumn,
   {
-    id: "formatted_created_date",
-    label: "Created Date",
-    accessor: "formatted_created_date",
-    // Display value is built client-side; sort on the real backend field.
-    sortKey: "created_date",
+    id: "inquiry_name",
+    label: "Inquiry",
+    accessor: "inquiry_name",
+    width: 200,
+    sortable: true,
+    sortKey: "inquiry",
+    render: textCell,
+  },
+  {
+    id: "formatted_followup_date",
+    label: "Followup Date",
+    accessor: "formatted_followup_date",
+    sortKey: "followup_date",
     width: 140,
     sortable: true,
+    render: textCell,
+  },
+  {
+    id: "formatted_next_followup_date",
+    label: "Next Followup",
+    accessor: "formatted_next_followup_date",
+    sortKey: "next_followup_date",
+    width: 140,
+    sortable: true,
+    render: textCell,
+  },
+  {
+    id: "formatted_time",
+    label: "Time",
+    accessor: "formatted_time",
+    width: 100,
+    render: textCell,
+  },
+  {
+    id: "priority",
+    label: "Priority",
+    accessor: "priority",
+    width: 100,
+    sortable: true,
+    render: textCell,
+  },
+  {
+    id: "executive_name",
+    label: "Executive",
+    accessor: "executive_name",
+    width: 160,
+    sortable: true,
+    sortKey: "executive",
+    render: textCell,
+  },
+  {
+    id: "followup_type",
+    label: "Type",
+    accessor: "followup_type",
+    width: 120,
+    sortable: true,
+    render: textCell,
+  },
+  {
+    id: "followup_details",
+    label: "Details",
+    accessor: "followup_details",
+    width: 250,
     render: textCell,
   },
 ];

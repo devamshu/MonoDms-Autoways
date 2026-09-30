@@ -11,6 +11,9 @@ import {
   CCDResponseDetail,
   CCDResponseListParams,
   CCDResponsePayload,
+  Followup,
+  FollowupListParams,
+  FollowupPayload,
   JobCardDetail,
   SalesDetail,
 } from "../types";
@@ -196,6 +199,41 @@ export const updateCCDResponse = createAsyncThunk<
       return response.data;
     }
     return rejectWithValue(response.message || "Failed to update CCD response");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// ============ Followups ============
+
+export const fetchFollowups = createAsyncThunk<
+  { count: number; results: Followup[]; next: string | null; previous: string | null },
+  FollowupListParams | undefined,
+  { rejectValue: string }
+>("ccd/fetchFollowups", async (params, { rejectWithValue }) => {
+  try {
+    const response = await ccdApi.fetchFollowups(params);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return rejectWithValue(response.message || "Failed to fetch followups");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+export const createFollowup = createAsyncThunk<
+  Followup,
+  FollowupPayload,
+  { rejectValue: string }
+>("ccd/createFollowup", async (payload, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await ccdApi.createFollowup(payload);
+    if (response.success && response.data) {
+      dispatch(fetchFollowups());
+      return response.data;
+    }
+    return rejectWithValue(response.message || "Failed to create followup");
   } catch (error) {
     return rejectWithValue(getErrorMessage(error));
   }

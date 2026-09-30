@@ -7,12 +7,15 @@ import {
   CCDModuleField,
   CCDModuleSettings,
   CCDResponseDetail,
+  Followup,
   JobCardDetail,
   SalesDetail,
 } from "../types";
 import {
+  createFollowup,
   fetchCCDResponseById,
   fetchCCDResponses,
+  fetchFollowups,
   fetchModuleCustomers,
   fetchModuleFields,
   fetchModules,
@@ -55,6 +58,12 @@ interface CCDState {
   currentPsfDetail: JobCardDetail | null;
   psfDetailLoading: boolean;
 
+  // Followups
+  followups: Followup[];
+  followupsCount: number;
+  followupsLoading: boolean;
+  followupSubmitting: boolean;
+
   // Loading states
   loading: boolean;
   actionLoading: boolean;
@@ -77,6 +86,10 @@ const initialState: CCDState = {
   responses: [],
   selectedResponse: null,
   responsesCount: 0,
+  followups: [],
+  followupsCount: 0,
+  followupsLoading: false,
+  followupSubmitting: false,
   loading: false,
   actionLoading: false,
   submitting: false,
@@ -124,6 +137,10 @@ const ccdSlice = createSlice({
     clearPsfDetail: (state) => {
       state.currentPsfDetail = null;
       state.psfDetailLoading = false;
+    },
+    setFollowupMode: (state) => {
+      state.activeModuleType = "followup";
+      state.activeModuleId = null;
     },
     clearError: (state) => {
       state.error = null;
@@ -292,11 +309,42 @@ const ccdSlice = createSlice({
         state.psfDetailLoading = false;
         state.error = action.payload ?? "Failed to fetch PSF details";
       });
+
+    // ============ Fetch Followups ============
+    builder
+      .addCase(fetchFollowups.pending, (state) => {
+        state.followupsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchFollowups.fulfilled, (state, action) => {
+        state.followupsLoading = false;
+        state.followups = action.payload.results;
+        state.followupsCount = action.payload.count;
+      })
+      .addCase(fetchFollowups.rejected, (state, action) => {
+        state.followupsLoading = false;
+        state.error = action.payload ?? "Failed to fetch followups";
+      });
+
+    // ============ Create Followup ============
+    builder
+      .addCase(createFollowup.pending, (state) => {
+        state.followupSubmitting = true;
+        state.error = null;
+      })
+      .addCase(createFollowup.fulfilled, (state) => {
+        state.followupSubmitting = false;
+      })
+      .addCase(createFollowup.rejected, (state, action) => {
+        state.followupSubmitting = false;
+        state.error = action.payload ?? "Failed to create followup";
+      });
   },
 });
 
 export const {
   setActiveModule,
+  setFollowupMode,
   clearCustomers,
   clearModuleFields,
   clearResponses,
