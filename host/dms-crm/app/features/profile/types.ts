@@ -12,6 +12,7 @@ export interface UserProfile {
   email: string;
   phone: string | null;
   image: string | null;
+  employee_id?: number | null;
   is_superuser?: boolean;
   groups?: UserGroup[];
   authorities?: string[];

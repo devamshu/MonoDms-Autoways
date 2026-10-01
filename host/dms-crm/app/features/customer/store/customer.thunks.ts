@@ -89,6 +89,13 @@ export const submitMultiStepForm = createAsyncThunk<
     { dispatch, getState, rejectWithValue },
   ) => {
     try {
+      const state = getState() as any;
+      const profile = state.crmProfile?.profile;
+
+      const assignedTo = formData.assigned_to
+        ? parseInt(formData.assigned_to, 10)
+        : profile?.id ?? undefined;
+
       const emails = emailEntries
         .filter((e) => e.email.trim())
         .map(
@@ -116,9 +123,7 @@ export const submitMultiStepForm = createAsyncThunk<
         inquiry_source: parseInt(formData.source_type, 10),
         kind: parseInt(formData.inquiry_kind, 10),
         remarks: formData.remarks || undefined,
-        ...(formData.assigned_to && {
-          assigned_to: parseInt(formData.assigned_to, 10),
-        }),
+        ...(assignedTo && { assigned_to: assignedTo }),
       };
 
       const response = await customerApi.createCustomer(payload);
