@@ -6,14 +6,16 @@ import { Image } from "react-native";
 import { Card, ScrollView, Text, YStack } from "tamagui";
 import { VehicleDetailCard } from "../vehicle/vehicleDetailCard";
 
-interface VehicleStockDetailScreenProps {
+interface DealerVehicleDetailScreenProps {
   id: string;
 }
 
-export function VehicleStockDetailScreen({
+export function DealerVehicleDetailScreen({
   id,
-}: VehicleStockDetailScreenProps) {
-  const { inventory } = useAppSelector((state) => state.warehouseVehicleStock);
+}: DealerVehicleDetailScreenProps) {
+  const { inventory } = useAppSelector(
+    (state) => state.warehouseDealerVehicle,
+  );
 
   const vehicle = inventory.find((i) => String(i.id) === String(id)) ?? null;
 
@@ -30,8 +32,7 @@ export function VehicleStockDetailScreen({
     );
   }
 
-  const dispatch = vehicle.dispatch;
-  const dmsVehicle = dispatch?.dms_vehicle;
+  const dmsVehicle = vehicle.dms_vehicle;
   const imageSource = DefaultImages.carPlaceholder;
 
   return (
@@ -66,17 +67,39 @@ export function VehicleStockDetailScreen({
               value: formatValue(dmsVehicle?.manufacturing_year),
             },
             { label: "Color", value: formatValue(dmsVehicle?.color?.name) },
-            { label: "Type", value: formatValue(dispatch?.type) },
-            { label: "Mode", value: formatValue(dispatch?.vehicle_mode) },
+            { label: "Fuel Type", value: formatValue(vehicle.vehicle_type) },
             {
               label: "Chassis No.",
-              value: formatValue(dispatch?.chassis_no),
+              value: formatValue(vehicle.chassis_no),
               copyable: true,
             },
             {
               label: "Engine No.",
-              value: formatValue(dispatch?.engine_no),
+              value: formatValue(vehicle.engine_no),
               copyable: true,
+            },
+          ]}
+        />
+
+        <VehicleDetailCard
+          title="Registration"
+          rows={[
+            {
+              label: "Register No.",
+              value: formatValue(vehicle.vehicle_register_no),
+              copyable: true,
+            },
+            {
+              label: "Register Date",
+              value: vehicle.vehicle_register_date
+                ? new Date(
+                    vehicle.vehicle_register_date,
+                  ).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "-",
             },
           ]}
         />
@@ -85,29 +108,15 @@ export function VehicleStockDetailScreen({
           title="Inventory Information"
           rows={[
             {
-              label: "Warehouse",
-              value: formatValue(dispatch?.current_location),
-            },
-            {
               label: "Current Status",
               value: (
                 <StatusBadge status={vehicle.current_status || "UNKNOWN"} />
               ),
             },
             {
-              label: "Damage",
-              value: vehicle.is_damage ? "Yes" : "No",
-            },
-            {
-              label: "Invoice No.",
-              value: formatValue(dispatch?.invoice_no),
-            },
-            {
-              label: "Received Date",
-              value: dispatch?.receiver_stockyard_received_date
-                ? new Date(
-                    dispatch.receiver_stockyard_received_date,
-                  ).toLocaleDateString("en-GB", {
+              label: "Stock Date",
+              value: vehicle.stock_date
+                ? new Date(vehicle.stock_date).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "short",
                     year: "numeric",

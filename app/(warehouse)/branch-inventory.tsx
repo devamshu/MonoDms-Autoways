@@ -1,43 +1,39 @@
 import { useSlideOpen } from "@/components/auth/slideOpen";
-import { getVehicleStockColumns } from "@/host/dms-warehouse/app/utils/columns/vehicle.columns";
-import { AddVehicleForm } from "@/host/dms-warehouse/app/vehicle/form/add-vehicle-form";
-import { AddFormButton } from "@/host/dms-warehouse/components/custom/buttons/addFormButton";
+import { getDealerVehicleColumns } from "@/host/dms-warehouse/app/utils/columns/dealer-vehicle.columns";
 import { useFilters } from "@/host/dms-warehouse/components/custom/filter/filterContext";
 import { buildTableApiParams } from "@/host/dms-warehouse/components/custom/table/buildFetchParams";
 import { TableMain } from "@/host/dms-warehouse/components/custom/table/main";
 
 import { useAppDispatch, useAppSelector } from "@/app/features/hooks";
 import { ScreenScrollView } from "@/components/workspace/screen-scroll-view";
-import { fetchVehicleStockInventory } from "@/host/dms-warehouse/app/features/vehicle/store/vehicle.thunks";
+import { fetchDealerVehicleInventory } from "@/host/dms-warehouse/app/features/dealer-vehicle/store/dealer-vehicle.thunks";
 import { FetchParams } from "@/host/dms-warehouse/components/custom/table/types";
-import { VehicleStockDetailScreen } from "@/host/dms-warehouse/components/custom/viewDetail/vehicleStockDetailScreen";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { DealerVehicleDetailScreen } from "@/host/dms-warehouse/components/custom/viewDetail/dealerVehicleDetailScreen";
+import { useCallback, useEffect, useRef } from "react";
 import { YStack } from "tamagui";
 
-export default function VehicleScreen() {
+export default function BranchInventoryScreen() {
   const dispatch = useAppDispatch();
   const { inventory, count, loading } = useAppSelector(
-    (state) => state.warehouseVehicleStock,
+    (state) => state.warehouseDealerVehicle,
   );
   const { activeFilters } = useFilters();
-  const [rowOffset, setRowOffset] = useState(0);
   const tableRef = useRef<any>(null);
   const { open } = useSlideOpen();
 
   const handleVehiclePress = useCallback(
     (id: string) => {
-      open(<VehicleStockDetailScreen id={id} />, "Vehicle Details");
+      open(<DealerVehicleDetailScreen id={id} />, "Vehicle Details");
     },
     [open],
   );
 
-  const columns = getVehicleStockColumns(handleVehiclePress);
+  const columns = getDealerVehicleColumns(handleVehiclePress);
 
   const fetchData = useCallback(
     async (params: FetchParams) => {
-      setRowOffset((params.page - 1) * params.limit);
       dispatch(
-        fetchVehicleStockInventory(buildTableApiParams(params, activeFilters)),
+        fetchDealerVehicleInventory(buildTableApiParams(params, activeFilters)),
       );
     },
     [dispatch, activeFilters],
@@ -76,7 +72,7 @@ export default function VehicleScreen() {
           enablePagination
           enableColumnManagement
           enableSorting
-          searchPlaceholder="Search vehicles..."
+          searchPlaceholder="Search branch inventory..."
           itemsPerPage={10}
           itemsPerPageOptions={[10, 25, 50]}
           keyExtractor={(item: any) => item.id.toString()}
@@ -86,7 +82,6 @@ export default function VehicleScreen() {
           showCard
         />
       </ScreenScrollView>
-      {/* <AddFormButton component={<AddVehicleForm />} title="Add Vehicle" /> */}
     </YStack>
   );
 }

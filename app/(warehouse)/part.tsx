@@ -93,10 +93,10 @@ export default function PartsScreen() {
         />
       </ScreenScrollView>
 
-      <AddFormButton
+      {/* <AddFormButton
         component={null}
         onPress={() => setStockyardDrawerOpen(true)}
-      />
+      /> */}
 
       <StockyardSelectionDrawer
         open={stockyardDrawerOpen}

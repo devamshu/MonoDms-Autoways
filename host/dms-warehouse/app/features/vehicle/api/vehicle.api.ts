@@ -14,11 +14,11 @@ export const vehicleStockApi = {
     data?: VehicleStockInventoryResponse;
     message?: string;
   }> {
-    const requestKey = generateRequestKey("/logistic-dispatch-vehicle/", params);
+    const requestKey = generateRequestKey("/available-vehicle-stock/", params);
 
     return dedupRequest(requestKey, async () => {
       const response = await apiClient.get<VehicleStockInventoryResponse>(
-        "/logistic-dispatch-vehicle/",
+        "/available-vehicle-stock/",
         { params },
       );
 

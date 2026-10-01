@@ -3,6 +3,7 @@ import {
   MasterVehicle,
   MasterVariant,
   MasterColor,
+  MasterDealer,
   MasterStockyard,
   MasterLocation,
 } from "../types";
@@ -10,6 +11,7 @@ import {
   fetchMasterVehicles,
   fetchMasterVariants,
   fetchMasterColors,
+  fetchMasterDealers,
   fetchMasterStockyards,
   fetchMasterLocations,
 } from "./master.thunks";
@@ -18,21 +20,25 @@ interface MasterState {
   vehicles: MasterVehicle[];
   variants: MasterVariant[];
   colors: MasterColor[];
+  dealers: MasterDealer[];
   stockyards: MasterStockyard[];
   locations: MasterLocation[];
   vehiclesLoading: boolean;
   variantsLoading: boolean;
   colorsLoading: boolean;
+  dealersLoading: boolean;
   stockyardsLoading: boolean;
   locationsLoading: boolean;
   vehiclesHasMore: boolean;
   variantsHasMore: boolean;
   colorsHasMore: boolean;
+  dealersHasMore: boolean;
   stockyardsHasMore: boolean;
   locationsHasMore: boolean;
   vehiclesError: string | null;
   variantsError: string | null;
   colorsError: string | null;
+  dealersError: string | null;
   stockyardsError: string | null;
   locationsError: string | null;
 }
@@ -41,21 +47,25 @@ const initialState: MasterState = {
   vehicles: [],
   variants: [],
   colors: [],
+  dealers: [],
   stockyards: [],
   locations: [],
   vehiclesLoading: false,
   variantsLoading: false,
   colorsLoading: false,
+  dealersLoading: false,
   stockyardsLoading: false,
   locationsLoading: false,
   vehiclesHasMore: true,
   variantsHasMore: true,
   colorsHasMore: true,
+  dealersHasMore: true,
   stockyardsHasMore: true,
   locationsHasMore: true,
   vehiclesError: null,
   variantsError: null,
   colorsError: null,
+  dealersError: null,
   stockyardsError: null,
   locationsError: null,
 };
@@ -68,16 +78,19 @@ const masterSlice = createSlice({
       state.vehicles = [];
       state.variants = [];
       state.colors = [];
+      state.dealers = [];
       state.stockyards = [];
       state.locations = [];
       state.vehiclesHasMore = true;
       state.variantsHasMore = true;
       state.colorsHasMore = true;
+      state.dealersHasMore = true;
       state.stockyardsHasMore = true;
       state.locationsHasMore = true;
       state.vehiclesError = null;
       state.variantsError = null;
       state.colorsError = null;
+      state.dealersError = null;
       state.stockyardsError = null;
       state.locationsError = null;
     },
@@ -138,6 +151,25 @@ const masterSlice = createSlice({
       .addCase(fetchMasterColors.rejected, (state, action) => {
         state.colorsLoading = false;
         state.colorsError = action.payload ?? "Something went wrong";
+      });
+
+    // Dealers
+    builder
+      .addCase(fetchMasterDealers.pending, (state) => {
+        state.dealersLoading = true;
+        state.dealersError = null;
+      })
+      .addCase(fetchMasterDealers.fulfilled, (state, action) => {
+        state.dealersLoading = false;
+        state.dealers =
+          action.payload.page > 1
+            ? [...state.dealers, ...action.payload.results]
+            : action.payload.results;
+        state.dealersHasMore = action.payload.next !== null;
+      })
+      .addCase(fetchMasterDealers.rejected, (state, action) => {
+        state.dealersLoading = false;
+        state.dealersError = action.payload ?? "Something went wrong";
       });
 
     // Stockyards

@@ -2,7 +2,7 @@ import { Text } from "tamagui";
 import { formatValue } from "../../../app/utils/validator/emptyFiledValidaotr";
 import { Column } from "../../../components/custom/table/types";
 
-export const getVehicleStockColumns = (
+export const getDealerVehicleColumns = (
   onPress: (id: string) => void,
 ): Column[] => [
   {
@@ -21,7 +21,7 @@ export const getVehicleStockColumns = (
   {
     id: "vehicle",
     label: "Vehicle",
-    accessor: "dispatch",
+    accessor: "dms_vehicle",
     sortable: false,
     width: 160,
     render: (_value: any, row: any) => (
@@ -31,82 +31,81 @@ export const getVehicleStockColumns = (
         numberOfLines={1}
         onPress={() => onPress(String(row.id))}
       >
-        {formatValue(row.dispatch?.dms_vehicle?.vehicle?.name)}
+        {formatValue(row.dms_vehicle?.vehicle?.name)}
       </Text>
     ),
   },
   {
     id: "chassis_no",
     label: "Chassis No",
-    accessor: "dispatch",
+    accessor: "chassis_no",
     sortable: true,
     width: 160,
-    sortKey: "dispatch__chassis_no",
-    render: (_value: any, row: any) => (
+    render: (value: string) => (
       <Text numberOfLines={1} fontSize="$xs" fontFamily="$mono">
-        {formatValue(row.dispatch?.chassis_no)}
+        {formatValue(value)}
       </Text>
     ),
   },
   {
     id: "variant",
     label: "Variant",
-    accessor: "dispatch",
+    accessor: "dms_vehicle",
     sortable: false,
     width: 160,
     render: (_value: any, row: any) => (
       <Text numberOfLines={1}>
-        {formatValue(row.dispatch?.dms_vehicle?.variant?.name)}
+        {formatValue(row.dms_vehicle?.variant?.name)}
       </Text>
     ),
   },
   {
     id: "color",
     label: "Color",
-    accessor: "dispatch",
+    accessor: "dms_vehicle",
     sortable: false,
     width: 160,
     render: (_value: any, row: any) => (
       <Text numberOfLines={1}>
-        {formatValue(row.dispatch?.dms_vehicle?.color?.name)}
+        {formatValue(row.dms_vehicle?.color?.name)}
       </Text>
     ),
   },
   {
     id: "manufacturing_year",
     label: "Year",
-    accessor: "dispatch",
+    accessor: "dms_vehicle",
     sortable: false,
     width: 120,
     align: "center",
     render: (_value: any, row: any) => (
       <Text numberOfLines={1}>
-        {formatValue(row.dispatch?.dms_vehicle?.manufacturing_year)}
+        {formatValue(row.dms_vehicle?.manufacturing_year)}
       </Text>
     ),
   },
   {
     id: "engine_no",
     label: "Engine No",
-    accessor: "dispatch",
+    accessor: "engine_no",
     sortable: true,
     width: 160,
-    sortKey: "dispatch__engine_no",
-    render: (_value: any, row: any) => (
+    render: (value: string) => (
       <Text numberOfLines={1} fontSize="$xs" fontFamily="$mono">
-        {formatValue(row.dispatch?.engine_no)}
+        {formatValue(value)}
       </Text>
     ),
   },
   {
-    id: "vehicle_type",
-    label: "Type",
-    accessor: "dispatch",
-    sortable: false,
-    width: 100,
-    align: "center",
-    render: (_value: any, row: any) => (
-      <Text numberOfLines={1}>{formatValue(row.dispatch?.type)}</Text>
+    id: "vehicle_register_no",
+    label: "Reg. No",
+    accessor: "vehicle_register_no",
+    sortable: true,
+    width: 160,
+    render: (value: string) => (
+      <Text numberOfLines={1} fontSize="$xs" fontFamily="$mono">
+        {formatValue(value)}
+      </Text>
     ),
   },
   {
