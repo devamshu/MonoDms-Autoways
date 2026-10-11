@@ -16,6 +16,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
   runOnJS,
+  runOnUI,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -60,6 +61,11 @@ const MENU_ITEMS = [
         path: "/(crm)/customer",
       },
       {
+        id: "customers",
+        title: "Customers",
+        path: "/(crm)/customers",
+      },
+      {
         id: "discount",
         title: "Discount Request",
         path: "/(crm)/discount",
@@ -77,9 +83,19 @@ const MENU_ITEMS = [
     Icon: Info,
     children: [
       {
-        id: "ccd-page",
-        title: "CCD Page",
-        path: "/(crm)/ccd",
+        id: "ccd-inquiry",
+        title: "CCD Inquiry",
+        path: "/(crm)/ccd-inquiry",
+      },
+      {
+        id: "ccd-retail",
+        title: "CCD Retail",
+        path: "/(crm)/ccd-retail",
+      },
+      {
+        id: "ccd-psf",
+        title: "CCD PSF",
+        path: "/(crm)/ccd-psf",
       },
     ],
   },
@@ -107,7 +123,10 @@ export default function Sidebar({
   const dispatch = useAppDispatch();
   const { profile, isLoading } = useAppSelector((state) => state.crmProfile);
 
-  const [selectedPath, setSelectedPath] = useState(activeRoute || "/(crm)");
+  // The highlighted path comes straight from the router: the sidebar navigates
+  // by pushing routes, so `activeRoute` updates and there is no local copy to
+  // keep in sync (deriving beats a setState-in-effect).
+  const selectedPath = activeRoute || "/(crm)";
   const [expandedMenu, setExpandedMenu] = useState<string | null>("crm");
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -142,14 +161,6 @@ export default function Sidebar({
 
   const profileImageUri = getFullImageUrl(profile?.image);
 
-  useEffect(() => {
-    if (activeRoute) setSelectedPath(activeRoute);
-  }, [activeRoute]);
-
-  useEffect(() => {
-    translateX.value = withSpring(isOpen ? 0 : -SIDEBAR_WIDTH, SPRING);
-  }, [isOpen]);
-
   const pan = Gesture.Pan()
     .activeOffsetX([-10, 10])
     .onUpdate((e) => {
@@ -181,6 +192,17 @@ export default function Sidebar({
     pointerEvents: translateX.value <= -SIDEBAR_WIDTH ? "none" : "auto",
   }));
 
+  // Animate the panel when it is opened/closed from outside the gesture (e.g.
+  // the hamburger button). The write happens on the UI thread so the shared
+  // value is not mutated directly in the effect body.
+  useEffect(() => {
+    const target = isOpen ? 0 : -SIDEBAR_WIDTH;
+    runOnUI(() => {
+      "worklet";
+      translateX.value = withSpring(target, SPRING);
+    })();
+  }, [isOpen, translateX]);
+
   // The router reports paths with the group segment stripped, but navigation
   // hrefs may keep it — compare both so highlighting works either way.
   const stripGroup = (path: string) => path.replace("/(crm)", "") || "/";
@@ -189,7 +211,6 @@ export default function Sidebar({
     (selectedPath === path || stripGroup(selectedPath) === stripGroup(path));
 
   const handleNavigate = (path: string) => {
-    setSelectedPath(path);
     onNavigate?.(path);
     closeSidebar();
   };

@@ -47,6 +47,12 @@ const createInitialResources = (): Record<
   testDrives: { items: [], loading: false, error: null, loaded: false },
   quotations: { items: [], loading: false, error: null, loaded: false },
   documents: { items: [], loading: false, error: null, loaded: false },
+  payments: { items: [], loading: false, error: null, loaded: false },
+  discounts: { items: [], loading: false, error: null, loaded: false },
+  salesDocuments: { items: [], loading: false, error: null, loaded: false },
+  salesAccessories: { items: [], loading: false, error: null, loaded: false },
+  salesRecord: { items: [], loading: false, error: null, loaded: false },
+  salesAssignment: { items: [], loading: false, error: null, loaded: false },
 });
 
 // NEW: Multi-step form state

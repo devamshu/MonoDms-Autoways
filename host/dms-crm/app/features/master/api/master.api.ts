@@ -5,12 +5,16 @@ import {
     MasterColor,
     MasterCountry,
     MasterDealer,
+    MasterDocumentMaster,
     MasterFilterOptions,
+    MasterFiscalYear,
     MasterInquiryKind,
     MasterOption,
     MasterPaymentMode,
+    MasterPaymentType,
     MasterRelation,
     MasterSourceType,
+    MasterSparePart,
     MasterVariant,
     MasterVehicle,
 } from "../types";
@@ -59,6 +63,29 @@ export const masterApi = {
     return {
       success: false,
       message: getApiErrorMessage(response, "Failed to fetch vehicle options"),
+    };
+  },
+
+  // Every DMS vehicle combination (the quotation line-item picker). page_size is
+  // large so one page covers the picker; the sheet searches client-side.
+  // shortcut: capped at one page, add paging if the catalog outgrows it.
+  async fetchDmsVehicles(): Promise<{
+    success: boolean;
+    data?: DmsVehicle[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: DmsVehicle[] }>(
+      "/dms-vehicle/",
+      { params: { page_size: 500 } },
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.results };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch vehicles"),
     };
   },
 
@@ -182,6 +209,90 @@ export const masterApi = {
     };
   },
 
+  // Payment types — used by the payment receipt form.
+  async fetchPaymentTypes(): Promise<{
+    success: boolean;
+    data?: MasterPaymentType[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: MasterPaymentType[] }>(
+      "/master-payment-type/",
+      { params: { page_size: 100 } },
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.results };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch payment types"),
+    };
+  },
+
+  // Document masters — the sales-document upload needs a type (`is_required`
+  // flags the ones the backend insists on).
+  async fetchDocumentMasters(): Promise<{
+    success: boolean;
+    data?: MasterDocumentMaster[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: MasterDocumentMaster[] }>(
+      "/master-document-master/",
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.results };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch document types"),
+    };
+  },
+
+  // Spare parts — one per accessory row on the Stock Sales tab.
+  async fetchSpareParts(): Promise<{
+    success: boolean;
+    data?: MasterSparePart[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: MasterSparePart[] }>(
+      "/master-sparepart/",
+      { params: { page_size: 10000 } },
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.results };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to load spare parts"),
+    };
+  },
+
+  // Fiscal years — the receipt needs the active one (`status: true`).
+  async fetchFiscalYears(): Promise<{
+    success: boolean;
+    data?: MasterFiscalYear[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: MasterFiscalYear[] }>(
+      "/master-fiscal-year/",
+      { params: { page_size: 100 } },
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.results };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch fiscal years"),
+    };
+  },
+
   // Variants catalogued for a vehicle (convert-to-deal cascade). Envelope is
   // {data: [...]} rather than DRF's {results: [...]}.
   async fetchVariantsByVehicle(
@@ -278,6 +389,26 @@ export const masterApi = {
     return {
       success: false,
       message: getApiErrorMessage(response, "Failed to fetch dealers"),
+    };
+  },
+
+  // Brands — used by the Inquiry filter drawer's Brand dropdown.
+  async fetchBrands(): Promise<{
+    success: boolean;
+    data?: MasterOption[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: MasterOption[] }>(
+      "/master-brand/",
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.results };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch brands"),
     };
   },
 

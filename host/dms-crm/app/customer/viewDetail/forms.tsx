@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { shallowEqual } from "react-redux";
 import { Alert, ActivityIndicator, TouchableOpacity } from "react-native";
+import { Trash2 } from "lucide-react-native";
 import { Button, Text, XStack, YStack } from "tamagui";
 import { useAppDispatch, useAppSelector } from "../../../../../app/features/hooks";
 import { toast } from "../../../components/custom/toast";
@@ -13,6 +14,7 @@ import { GenericModal } from "../../../components/custom/model/genericModal";
 import { CustomerStepperThree } from "../../../components/custom/customer/customerStepperThree";
 import { VehicleCascade } from "../../../components/custom/customer/vehicleCascade";
 import { useEmployees } from "../../../hooks/useEmployees";
+import { formatNpr } from "../../utils/format/format";
 import { customerApi } from "../../features/customer/api/customer.api";
 import { masterApi } from "../../features/master/api/master.api";
 import {
@@ -21,10 +23,14 @@ import {
   createInquiryDealStatus,
   createInquiryFollowup,
   createInquiryNote,
+  createInquiryPayment,
+  createInquiryQuotation,
+  createInquiryTestDrive,
   fetchCustomerById,
   requestInquiryKindChange,
   reviewInquiry,
   updateInquiry,
+  uploadSalesDocument,
 } from "../../features/customer/store/customer.thunks";
 import {
   fetchDmsVehiclesForVehicle,
@@ -41,8 +47,12 @@ import type {
   AddCustomerPhonePayload,
   BookInquiryPayload,
   ConvertToDealPayload,
+  CreatePaymentPayload,
+  CreateQuotationPayload,
+  CreateTestDrivePayload,
   Customer,
   CustomerFormData,
+  DealerStockItem,
   EmailEntry,
   PhoneEntry,
   StagedVehicle,
@@ -50,6 +60,8 @@ import type {
   VehicleDetail,
 } from "../../features/customer/types";
 import type {
+  DmsVehicle,
+  MasterDocumentMaster,
   MasterInquiryKind,
   MasterOption,
 } from "../../features/master/types";
@@ -811,7 +823,7 @@ export function ConvertToDealForm({
       {hasDiscount ? (
         <Field label="Discount Amount" required>
           <AppInput
-            placeholder="Enter discount amount"
+            placeholder="Enter discount amount (NPR)"
             keyboardType="numeric"
             value={discount}
             onChangeText={setDiscount}
@@ -1090,7 +1102,7 @@ export function BookForm({
     <YStack gap="$4">
       <Field label="Deal Amount" required>
         <AppInput
-          placeholder="Agreed total deal price"
+          placeholder="Agreed total deal price (NPR)"
           keyboardType="numeric"
           value={form.deal_amount}
           onChangeText={(v) => set("deal_amount", v)}
@@ -1099,7 +1111,7 @@ export function BookForm({
 
       <Field label="Booking Amount" required>
         <AppInput
-          placeholder="Amount received now"
+          placeholder="Amount received now (NPR)"
           keyboardType="numeric"
           value={form.booking_amount}
           onChangeText={(v) => set("booking_amount", v)}
@@ -1252,7 +1264,7 @@ export function BookForm({
             </Field>
             <Field label="Valuation Amount" required>
               <AppInput
-                placeholder="Enter valuation amount"
+                placeholder="Enter valuation amount (NPR)"
                 keyboardType="numeric"
                 value={entry.valuation_amount}
                 onChangeText={(v) =>
@@ -1730,6 +1742,947 @@ export function EditCustomerForm({
         title="Update Customer"
         description="Please verify the details before saving."
         confirmText="Save"
+        loading={loading}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={confirm}
+      />
+    </YStack>
+  );
+}
+
+// Phase 6 — record a receipt against a booked inquiry (POST /crm/payment-process/).
+// shortcut: the shared DatePicker disables past dates, so a back-dated receipt
+// can't be entered from mobile; upgrade if that's needed.
+export function AddPaymentForm({
+  inquiryId,
+  onDone,
+}: {
+  inquiryId: string;
+  onDone: () => void;
+}) {
+  const dispatch = useAppDispatch();
+  const [paymentTypes, setPaymentTypes] = useState<MasterOption[]>([]);
+  const [paymentModes, setPaymentModes] = useState<MasterOption[]>([]);
+  const [mastersLoading, setMastersLoading] = useState(true);
+  const [fiscalYearId, setFiscalYearId] = useState<number | null>(null);
+  const [form, setForm] = useState({
+    payment_type: "",
+    payment_mode: "",
+    amount: "",
+    receipt_date: "",
+    next_installment_date: "",
+    payment_information: "",
+    description: "",
+  });
+  const [document, setDocument] = useState<UploadFile | null>(null);
+  const [dateOpen, setDateOpen] = useState<
+    "receipt_date" | "next_installment_date" | null
+  >(null);
+  const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const set = (key: keyof typeof form, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      masterApi.fetchPaymentTypes(),
+      masterApi.fetchPaymentModes(),
+      masterApi.fetchFiscalYears(),
+    ])
+      .then(([types, modes, years]) => {
+        if (!active) return;
+        if (types.success && types.data) setPaymentTypes(types.data);
+        if (modes.success && modes.data) setPaymentModes(modes.data);
+        // Matches web: stamp the active fiscal year onto the receipt.
+        setFiscalYearId(
+          years.data?.find((y) => y.status === true || y.status === 1)?.id ??
+            null,
+        );
+      })
+      .finally(() => {
+        if (active) setMastersLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const isCredit =
+    paymentTypes
+      .find((t) => String(t.id) === form.payment_type)
+      ?.name.trim()
+      .toLowerCase()
+      .includes("credit") ?? false;
+
+  const validate = (): string | null => {
+    if (!form.payment_type) return "Payment type is required";
+    if (!form.payment_mode) return "Payment mode is required";
+    const amount = Number(form.amount);
+    if (!form.amount.trim() || Number.isNaN(amount) || amount <= 0) {
+      return "Amount is required and must be positive";
+    }
+    if (!form.receipt_date) return "Receipt date is required";
+    if (isCredit && !form.next_installment_date) {
+      return "Next installment date is required for credit payments";
+    }
+    return null;
+  };
+
+  const submit = () => {
+    const error = validate();
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const confirm = async () => {
+    setLoading(true);
+    try {
+      const payload: CreatePaymentPayload = {
+        inquiry: Number(inquiryId),
+        payment_type: Number(form.payment_type),
+        payment_mode: Number(form.payment_mode),
+        amount: Number(form.amount),
+        receipt_date: form.receipt_date,
+        fiscal_year: fiscalYearId ?? 0,
+        ...(form.payment_information.trim()
+          ? { payment_information: form.payment_information.trim() }
+          : {}),
+        ...(form.description.trim()
+          ? { description: form.description.trim() }
+          : {}),
+        ...(isCredit && form.next_installment_date
+          ? { next_installment_date: form.next_installment_date }
+          : {}),
+        ...(document ? { document } : {}),
+      };
+      await dispatch(createInquiryPayment({ inquiryId, payload })).unwrap();
+      toast.success("Payment added");
+      setConfirmOpen(false);
+      onDone();
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to add payment"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <YStack gap="$3">
+      <Field label="Payment Type" required>
+        <Dropdown
+          placeholder="Select payment type"
+          options={paymentTypes.map(toOption)}
+          value={form.payment_type}
+          onChange={(v) => set("payment_type", v)}
+          loading={mastersLoading}
+        />
+      </Field>
+
+      {isCredit ? (
+        <Field label="Next Installment Date" required>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setDateOpen("next_installment_date")}
+          >
+            <YStack pointerEvents="none">
+              <AppInput
+                placeholder="Select next installment date"
+                value={form.next_installment_date}
+              />
+            </YStack>
+          </TouchableOpacity>
+          <DatePicker
+            visible={dateOpen === "next_installment_date"}
+            selectedDate={
+              form.next_installment_date
+                ? new Date(form.next_installment_date)
+                : null
+            }
+            onClose={() => setDateOpen(null)}
+            onDateSelect={(d) => {
+              set("next_installment_date", toDateValue(d));
+              setDateOpen(null);
+            }}
+          />
+        </Field>
+      ) : null}
+
+      <Field label="Amount" required>
+        <AppInput
+          placeholder="Enter amount received (NPR)"
+          keyboardType="numeric"
+          value={form.amount}
+          onChangeText={(v) => set("amount", v)}
+        />
+      </Field>
+
+      <Field label="Payment Mode" required>
+        <Dropdown
+          placeholder="Select payment mode"
+          options={paymentModes.map(toOption)}
+          value={form.payment_mode}
+          onChange={(v) => set("payment_mode", v)}
+          loading={mastersLoading}
+        />
+      </Field>
+
+      <Field label="Receipt Date" required>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setDateOpen("receipt_date")}
+        >
+          <YStack pointerEvents="none">
+            <AppInput
+              placeholder="Select receipt date"
+              value={form.receipt_date}
+            />
+          </YStack>
+        </TouchableOpacity>
+        <DatePicker
+          visible={dateOpen === "receipt_date"}
+          selectedDate={form.receipt_date ? new Date(form.receipt_date) : null}
+          onClose={() => setDateOpen(null)}
+          onDateSelect={(d) => {
+            set("receipt_date", toDateValue(d));
+            setDateOpen(null);
+          }}
+        />
+      </Field>
+
+      <Field label="Payment Information">
+        <AppInput
+          placeholder="Cheque / transaction reference (optional)"
+          value={form.payment_information}
+          onChangeText={(v) => set("payment_information", v)}
+        />
+      </Field>
+
+      <Field label="Description">
+        <AppInput
+          placeholder="Notes (optional)"
+          value={form.description}
+          onChangeText={(v) => set("description", v)}
+          multiline
+          numberOfLines={3}
+          height={90}
+        />
+      </Field>
+
+      <FileField
+        label="Receipt (optional)"
+        value={document}
+        onPick={async () => setDocument(await pickImage())}
+        onClear={() => setDocument(null)}
+      />
+
+      <SubmitButton label="Add Payment" loading={loading} onPress={submit} />
+
+      <GenericModal
+        isOpen={confirmOpen}
+        variant="confirmCancel"
+        title="Add Payment"
+        description="Please verify the receipt details before saving."
+        confirmText="Add"
+        loading={loading}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={confirm}
+      />
+    </YStack>
+  );
+}
+
+// Phase 6b — sales document upload (POST /crm/document/, multipart).
+// shortcut: expo-document-picker is not installed, so only images can be
+// attached from mobile; install it if PDFs/scans must be uploaded here.
+export function AddSalesDocumentForm({
+  inquiryId,
+  onDone,
+  defaultIsSalesDocument = true,
+}: {
+  inquiryId: string;
+  onDone: () => void;
+  // The Records > Documents tab files plain documents (web hardcodes false).
+  defaultIsSalesDocument?: boolean;
+}) {
+  const dispatch = useAppDispatch();
+  const [docTypes, setDocTypes] = useState<MasterDocumentMaster[]>([]);
+  const [mastersLoading, setMastersLoading] = useState(true);
+  const [masterDoc, setMasterDoc] = useState("");
+  const [isSalesDocument, setIsSalesDocument] = useState(
+    defaultIsSalesDocument ? "yes" : "no",
+  );
+  const [file, setFile] = useState<UploadFile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    masterApi
+      .fetchDocumentMasters()
+      .then((res) => {
+        if (active && res.success && res.data) setDocTypes(res.data);
+      })
+      .finally(() => {
+        if (active) setMastersLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const submit = () => {
+    if (!masterDoc) {
+      toast.error("Document type is required");
+      return;
+    }
+    if (!file) {
+      toast.error("Please attach a document");
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const confirm = async () => {
+    if (!file) return;
+    setLoading(true);
+    try {
+      await dispatch(
+        uploadSalesDocument({
+          inquiryId,
+          masterDoc: Number(masterDoc),
+          file,
+          isSalesDocument: isSalesDocument === "yes",
+        }),
+      ).unwrap();
+      toast.success("Document uploaded");
+      setConfirmOpen(false);
+      onDone();
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to upload document"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <YStack gap="$3">
+      <Field label="Document Type" required>
+        <Dropdown
+          placeholder="Select document type"
+          options={docTypes.map(toOption)}
+          value={masterDoc}
+          onChange={setMasterDoc}
+          loading={mastersLoading}
+        />
+      </Field>
+
+      <Field label="Is Sales Document" required>
+        <RadioGroup
+          options={[
+            { label: "Yes", value: "yes" },
+            { label: "No", value: "no" },
+          ]}
+          value={isSalesDocument}
+          onChange={setIsSalesDocument}
+        />
+      </Field>
+
+      <FileField
+        label="Document"
+        value={file}
+        onPick={async () => setFile(await pickImage())}
+        onClear={() => setFile(null)}
+      />
+
+      <SubmitButton label="Upload Document" loading={loading} onPress={submit} />
+
+      <GenericModal
+        isOpen={confirmOpen}
+        variant="confirmCancel"
+        title="Upload Document"
+        description="Please verify the document before uploading."
+        confirmText="Upload"
+        loading={loading}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={confirm}
+      />
+    </YStack>
+  );
+}
+
+// ─── Test Drive (web CRM/Inquiry/DetailsTabs/TestDriveTabs) ───────────────────
+
+const TEST_DRIVE_STATUS_OPTIONS: DropdownOption[] = [
+  { label: "Scheduled", value: "Scheduled" },
+  { label: "Completed", value: "Completed" },
+  { label: "Canceled", value: "Canceled" },
+];
+
+// A test drive is booked against a dealer-stock unit, not a DMS vehicle.
+const dealerStockLabel = (item: DealerStockItem): string => {
+  const v = item.dms_vehicle;
+  const parts = [
+    v?.vehicle?.name,
+    v?.variant?.name,
+    v?.color?.name,
+    item.chassis_no,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" ") : `Branch Stock #${item.id}`;
+};
+
+export function AddTestDriveForm({
+  inquiryId,
+  dealerId,
+  onDone,
+}: {
+  inquiryId: string;
+  dealerId: number | null;
+  onDone: () => void;
+}) {
+  const dispatch = useAppDispatch();
+  const { options: employeeOptions, loading: employeesLoading } =
+    useEmployees(true);
+  const [stocks, setStocks] = useState<DropdownOption[]>([]);
+  const [stocksLoading, setStocksLoading] = useState(false);
+  const [vehicleId, setVehicleId] = useState("");
+  const [reportedBy, setReportedBy] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [startMeter, setStartMeter] = useState("");
+  const [endMeter, setEndMeter] = useState("");
+  const [status, setStatus] = useState("Scheduled");
+  const [feedback, setFeedback] = useState("");
+  const [dateOpen, setDateOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (dealerId == null) return;
+    let active = true;
+    setStocksLoading(true);
+    customerApi
+      .fetchAvailableDealerStock(dealerId)
+      .then((res) => {
+        if (!active) return;
+        setStocks(
+          (res.data ?? []).map((item) => ({
+            label: dealerStockLabel(item),
+            value: String(item.id),
+          })),
+        );
+      })
+      .finally(() => {
+        if (active) setStocksLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [dealerId]);
+
+  // Web keeps kms read-only, derived from the two meter readings.
+  const kms =
+    startMeter !== "" && endMeter !== ""
+      ? String(Number(endMeter) - Number(startMeter))
+      : "";
+
+  const submit = () => {
+    if (!vehicleId) {
+      toast.error("Please select a vehicle");
+      return;
+    }
+    if (!scheduledDate || !scheduledTime) {
+      toast.error("Start date and time are required");
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const confirm = async () => {
+    setLoading(true);
+    try {
+      const payload: CreateTestDrivePayload = {
+        inquiry: Number(inquiryId),
+        vehicle: Number(vehicleId),
+        reported_by: reportedBy ? Number(reportedBy) : null,
+        scheduled_date: new Date(
+          `${scheduledDate}T${scheduledTime}:00`,
+        ).toISOString(),
+        end_time: endTime
+          ? new Date(`${scheduledDate}T${endTime}:00`).toISOString()
+          : null,
+        start_meter: startMeter !== "" ? Number(startMeter) : null,
+        end_meter: endMeter !== "" ? Number(endMeter) : null,
+        kms: kms !== "" ? Number(kms) : null,
+        test_drive_status: status,
+        feedback: feedback.trim() || null,
+      };
+      await dispatch(createInquiryTestDrive({ inquiryId, payload })).unwrap();
+      toast.success("Test drive scheduled");
+      setConfirmOpen(false);
+      onDone();
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to schedule test drive"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <YStack gap="$3">
+      <Field label="Vehicle" required>
+        <Dropdown
+          placeholder={stocksLoading ? "Loading stock..." : "Select vehicle"}
+          options={stocks}
+          value={vehicleId}
+          onChange={setVehicleId}
+          loading={stocksLoading}
+        />
+      </Field>
+
+      <Field label="Reported By">
+        <Dropdown
+          placeholder="Select employee"
+          options={employeeOptions}
+          value={reportedBy}
+          onChange={setReportedBy}
+          loading={employeesLoading}
+        />
+      </Field>
+
+      <Field label="Start Date" required>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => setDateOpen(true)}>
+          <YStack pointerEvents="none">
+            <AppInput placeholder="Select start date" value={scheduledDate} />
+          </YStack>
+        </TouchableOpacity>
+        <DatePicker
+          visible={dateOpen}
+          selectedDate={scheduledDate ? new Date(scheduledDate) : null}
+          onClose={() => setDateOpen(false)}
+          onDateSelect={(d) => {
+            setScheduledDate(toDateValue(d));
+            setDateOpen(false);
+          }}
+        />
+      </Field>
+
+      <Field label="Start Time" required>
+        <AppInput
+          placeholder="HH:MM"
+          value={scheduledTime}
+          onChangeText={setScheduledTime}
+        />
+      </Field>
+
+      <Field label="End Time">
+        <AppInput placeholder="HH:MM" value={endTime} onChangeText={setEndTime} />
+      </Field>
+
+      <XStack gap="$3">
+        <YStack flex={1}>
+          <Field label="Start Meter">
+            <AppInput
+              placeholder="0"
+              keyboardType="numeric"
+              value={startMeter}
+              onChangeText={setStartMeter}
+            />
+          </Field>
+        </YStack>
+        <YStack flex={1}>
+          <Field label="End Meter">
+            <AppInput
+              placeholder="0"
+              keyboardType="numeric"
+              value={endMeter}
+              onChangeText={setEndMeter}
+            />
+          </Field>
+        </YStack>
+      </XStack>
+
+      <Field label="Kms">
+        <YStack pointerEvents="none">
+          <AppInput placeholder="Auto" value={kms} />
+        </YStack>
+      </Field>
+
+      <Field label="Status" required>
+        <Dropdown
+          placeholder="Select status"
+          options={TEST_DRIVE_STATUS_OPTIONS}
+          value={status}
+          onChange={setStatus}
+        />
+      </Field>
+
+      <Field label="Feedback">
+        <AppInput
+          placeholder="Enter feedback"
+          value={feedback}
+          onChangeText={setFeedback}
+          multiline
+          numberOfLines={3}
+          height={90}
+        />
+      </Field>
+
+      <SubmitButton
+        label="Schedule Test Drive"
+        loading={loading}
+        onPress={submit}
+      />
+
+      <GenericModal
+        isOpen={confirmOpen}
+        variant="confirmCancel"
+        title="Schedule Test Drive"
+        description="Please verify the details before scheduling."
+        confirmText="Schedule"
+        loading={loading}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={confirm}
+      />
+    </YStack>
+  );
+}
+
+// ─── Quotation (web CRM/Inquiry/DetailsTabs/QuotationTabs) ───────────────────
+
+// Parsed by the backend PDF into the Pro-Forma sample's terms grid; kept in
+// sync with the web default.
+const DEFAULT_TERMS = `Payment Terms: 30% advance, 70% at delivery
+Delivery: Ready stock with in 30 days
+Validity: Valid for 30 days
+Warranty:
+Cancellation Charge: 10% cancellation charge
+Insurance & Transport: Insurance by company
+Price Inclusions: Inclusive of VAT`;
+
+const dmsVehicleLabel = (v: DmsVehicle): string =>
+  [v.vehicle?.name, v.variant?.name, v.color?.name].filter(Boolean).join(" ") ||
+  `Vehicle #${v.id}`;
+
+interface QuotationRow {
+  key: string;
+  vehicle: string;
+  price: string;
+  qty: string;
+  discount: string;
+  // The listed customer price at selection time; a change from it needs an
+  // approver. Blank when the price is unknown, which counts as unchanged.
+  listedPrice: string;
+}
+
+const emptyQuotationRow = (): QuotationRow => ({
+  key: `${Date.now()}_${Math.random()}`,
+  vehicle: "",
+  price: "",
+  qty: "1",
+  discount: "0",
+  listedPrice: "",
+});
+
+const rowLineTotal = (row: QuotationRow): number =>
+  Number(row.price || 0) * Number(row.qty || 1) - Number(row.discount || 0);
+
+export function AddQuotationForm({
+  inquiryId,
+  onDone,
+}: {
+  inquiryId: string;
+  onDone: () => void;
+}) {
+  const dispatch = useAppDispatch();
+  const { options: employeeOptions, loading: employeesLoading } =
+    useEmployees(true, true);
+  const [vehicles, setVehicles] = useState<DropdownOption[]>([]);
+  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
+  const [rows, setRows] = useState<QuotationRow[]>([emptyQuotationRow()]);
+  const [signatory, setSignatory] = useState("");
+  const [approver, setApprover] = useState("");
+  const [bank, setBank] = useState("no");
+  const [bankName, setBankName] = useState("");
+  const [terms, setTerms] = useState(DEFAULT_TERMS);
+  const [remarks, setRemarks] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    masterApi
+      .fetchDmsVehicles()
+      .then((res) => {
+        if (!active || !res.success || !res.data) return;
+        setVehicles(
+          res.data.map((v) => ({
+            label: dmsVehicleLabel(v),
+            value: String(v.id),
+          })),
+        );
+        setPrices(
+          Object.fromEntries(
+            res.data
+              .filter((v) => v.vehicle_price?.[0]?.customer_price != null)
+              .map((v) => [String(v.id), v.vehicle_price![0].customer_price!]),
+          ),
+        );
+      })
+      .finally(() => {
+        if (active) setVehiclesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const setRow = (index: number, patch: Partial<QuotationRow>) =>
+    setRows((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+
+  // Picking a vehicle prefills its listed price and remembers it, so a later
+  // manual edit is detected as a price change (needs approval).
+  const onVehicleChange = (index: number, value: string) => {
+    const listed = prices[value];
+    setRow(index, {
+      vehicle: value,
+      price: listed != null ? String(listed) : "",
+      listedPrice: listed != null ? String(listed) : "",
+    });
+  };
+
+  const priceChanged = rows.some(
+    (row) => !!row.listedPrice && Number(row.price || 0) !== Number(row.listedPrice),
+  );
+  const grandTotal = rows.reduce((sum, row) => sum + rowLineTotal(row), 0);
+
+  const submit = () => {
+    if (rows.some((row) => !row.vehicle)) {
+      toast.error("Please select a vehicle for every row");
+      return;
+    }
+    if (!signatory) {
+      toast.error("Authorized signatory is required");
+      return;
+    }
+    if (priceChanged && !approver) {
+      toast.error("Select who should approve this price change");
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const confirm = async () => {
+    setLoading(true);
+    try {
+      const payload: CreateQuotationPayload = {
+        inquiry: Number(inquiryId),
+        signatory: Number(signatory),
+        requested_approver:
+          priceChanged && approver ? Number(approver) : undefined,
+        customer_display_name:
+          bank === "yes" ? bankName.trim() || undefined : undefined,
+        terms_and_conditions: terms.trim() || undefined,
+        remarks: remarks.trim() || undefined,
+        quotation_vehicles: rows.map((row) => ({
+          vehicle: Number(row.vehicle),
+          vehicle_price: row.price !== "" ? Number(row.price) : undefined,
+          quantity: row.qty !== "" ? Number(row.qty) : undefined,
+          discount: row.discount !== "" ? Number(row.discount) : undefined,
+        })),
+      };
+      await dispatch(createInquiryQuotation({ inquiryId, payload })).unwrap();
+      toast.success("Quotation created");
+      setConfirmOpen(false);
+      onDone();
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to create quotation"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <YStack gap="$4">
+      <YStack gap="$3">
+        <XStack alignItems="center" justifyContent="space-between">
+          <RequiredLabel>Vehicles</RequiredLabel>
+          <Button
+            onPress={() => setRows((prev) => [...prev, emptyQuotationRow()])}
+            backgroundColor="transparent"
+            borderWidth={1}
+            borderColor="$primary"
+            height={38}
+            borderRadius={10}
+            pressStyle={{ opacity: 0.8 }}
+          >
+            <Text color="$primary" fontWeight="600" fontSize="$3">
+              + Add Vehicle
+            </Text>
+          </Button>
+        </XStack>
+
+        {rows.map((row, index) => (
+          <YStack
+            key={row.key}
+            gap="$3"
+            borderWidth={1}
+            borderColor="$outline"
+            borderRadius={12}
+            padding="$3"
+          >
+            <Field label="Vehicle" required>
+              <Dropdown
+                placeholder="Select vehicle"
+                options={vehicles}
+                value={row.vehicle}
+                onChange={(v) => onVehicleChange(index, v)}
+                loading={vehiclesLoading}
+              />
+            </Field>
+
+            <XStack gap="$3">
+              <YStack flex={1}>
+                <Field label="Price">
+                  <AppInput
+                    placeholder="0"
+                    keyboardType="numeric"
+                    value={row.price}
+                    onChangeText={(v) => setRow(index, { price: v })}
+                  />
+                </Field>
+              </YStack>
+              <YStack flex={1}>
+                <Field label="Qty">
+                  <AppInput
+                    placeholder="1"
+                    keyboardType="numeric"
+                    value={row.qty}
+                    onChangeText={(v) => setRow(index, { qty: v })}
+                  />
+                </Field>
+              </YStack>
+              <YStack flex={1}>
+                <Field label="Discount">
+                  <AppInput
+                    placeholder="0"
+                    keyboardType="numeric"
+                    value={row.discount}
+                    onChangeText={(v) => setRow(index, { discount: v })}
+                  />
+                </Field>
+              </YStack>
+            </XStack>
+
+            <XStack alignItems="center" justifyContent="space-between">
+              <Text fontSize="$3" color="$secondaryText">
+                Total: {formatNpr(rowLineTotal(row))}
+              </Text>
+              {rows.length > 1 ? (
+                <TouchableOpacity
+                  onPress={() =>
+                    setRows((prev) => prev.filter((_, i) => i !== index))
+                  }
+                  hitSlop={8}
+                >
+                  <Trash2 size={18} color="#ef4444" />
+                </TouchableOpacity>
+              ) : null}
+            </XStack>
+          </YStack>
+        ))}
+
+        <XStack justifyContent="space-between">
+          <Text fontSize="$3" fontWeight="600" color="$color">
+            Grand Total
+          </Text>
+          <Text fontSize="$3" fontWeight="600" color="$color">
+            {formatNpr(grandTotal)}
+          </Text>
+        </XStack>
+      </YStack>
+
+      <Field label="Authorized Signatory" required>
+        <Dropdown
+          placeholder="Select authorized signatory"
+          options={employeeOptions}
+          value={signatory}
+          onChange={setSignatory}
+          loading={employeesLoading}
+        />
+      </Field>
+
+      {priceChanged ? (
+        <Field label="Request Approval From" required>
+          <Dropdown
+            placeholder="Select an employee to request approval from"
+            options={employeeOptions}
+            value={approver}
+            onChange={setApprover}
+            loading={employeesLoading}
+          />
+        </Field>
+      ) : null}
+
+      <Field label="Bank Financed?">
+        <RadioGroup
+          options={[
+            { label: "No", value: "no" },
+            { label: "Yes", value: "yes" },
+          ]}
+          value={bank}
+          onChange={setBank}
+        />
+      </Field>
+
+      {bank === "yes" ? (
+        <Field label="Bank Name">
+          <AppInput
+            placeholder="Enter bank name"
+            value={bankName}
+            onChangeText={setBankName}
+          />
+        </Field>
+      ) : null}
+
+      <Field label="Terms & Conditions">
+        <AppInput
+          placeholder="Enter terms and conditions"
+          value={terms}
+          onChangeText={setTerms}
+          multiline
+          numberOfLines={8}
+          height={180}
+        />
+      </Field>
+
+      <Field label="Remarks">
+        <AppInput
+          placeholder="Enter remarks"
+          value={remarks}
+          onChangeText={setRemarks}
+          multiline
+          numberOfLines={3}
+          height={90}
+        />
+      </Field>
+
+      <SubmitButton label="Create Quotation" loading={loading} onPress={submit} />
+
+      <GenericModal
+        isOpen={confirmOpen}
+        variant="confirmCancel"
+        title="Create Quotation"
+        description="Please verify the quotation before saving."
+        confirmText="Create"
         loading={loading}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={confirm}

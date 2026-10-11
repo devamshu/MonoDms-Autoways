@@ -1,8 +1,8 @@
 import { useAppDispatch, useAppSelector } from "@/app/features/hooks";
+import { useSlideOpen } from "@/components/auth/slideOpen";
 import { ScreenScrollView } from "@/components/workspace/screen-scroll-view";
 import { AddCustomerForm } from "@/host/dms-crm/app/customer/AddForm/add-customer-form";
-import { CustomerActionDrawer } from "@/host/dms-crm/app/customer/viewDetail/CustomerActionDrawer";
-import type { Customer } from "@/host/dms-crm/app/features/customer/types";
+import { CustomerActionScreen } from "@/host/dms-crm/app/customer/viewDetail/CustomerActionScreen";
 import { fetchCustomers } from "@/host/dms-crm/app/features/customer/store/customer.thunks";
 import { AddFormButton } from "@/host/dms-crm/components/custom/buttons/addFormButton";
 import { getCustomerColumns } from "@/host/dms-crm/components/custom/columns/customer.columns";
@@ -10,7 +10,7 @@ import { useFilters } from "@/host/dms-crm/components/custom/filter/filterContex
 import { buildTableApiParams } from "@/host/dms-crm/components/custom/table/buildFetchParams";
 import { TableMain } from "@/host/dms-crm/components/custom/table/main";
 import { FetchParams } from "@/host/dms-crm/components/custom/table/types";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { YStack } from "tamagui";
 
 export default function CustomerScreen() {
@@ -20,18 +20,24 @@ export default function CustomerScreen() {
   );
 
   const { activeFilters } = useFilters();
+  const { open } = useSlideOpen();
   const tableRef = useRef<any>(null);
 
-  // The customer whose action drawer is open. Opening the drawer keeps the
-  // list mounted underneath, so filters/search/page/scroll are preserved.
-  const [actionCustomer, setActionCustomer] = useState<Customer | null>(null);
-
+  // Row tap opens the action menu as a full slide-over; its sub-views push on
+  // top of it, and the list underneath stays mounted the whole time.
   const handleCustomerPress = useCallback(
     (id: string) => {
-      const row = customers.find((c) => String(c.id) === id) ?? null;
-      setActionCustomer(row);
+      const row = customers.find((c) => String(c.id) === id);
+      if (!row) return;
+      open(
+        <CustomerActionScreen
+          customer={row}
+          onChanged={() => tableRef.current?.refresh()}
+        />,
+        row.name ?? "Customer",
+      );
     },
-    [customers],
+    [customers, open],
   );
 
   const columns = getCustomerColumns(handleCustomerPress);
@@ -47,6 +53,21 @@ export default function CustomerScreen() {
     },
     [dispatch, activeFilters],
   );
+
+  // TableMain holds onFetchData in a ref, so a new activeFilters identity does
+  // not retrigger its fetch effect — refresh explicitly instead. Skips the
+  // first run so it doesn't double-fetch alongside TableMain's initial fetch.
+  const previousFiltersJson = useRef<string | null>(null);
+  useEffect(() => {
+    const json = JSON.stringify(activeFilters);
+    if (previousFiltersJson.current === null) {
+      previousFiltersJson.current = json;
+      return;
+    }
+    if (previousFiltersJson.current === json) return;
+    previousFiltersJson.current = json;
+    tableRef.current?.refresh();
+  }, [activeFilters]);
 
   return (
     <YStack flex={1} backgroundColor="$background">
@@ -69,16 +90,21 @@ export default function CustomerScreen() {
           }}
           emptyMessage="No customers found"
           isLoading={loading}
-          defaultVisibleColumns={["sn", "name", "kind_name", "is_converted_to_deal"]}
+          defaultVisibleColumns={[
+            "sn",
+            "inq_no",
+            "name",
+            "contact",
+            "contact_person",
+            "inquiry_date",
+            "kind_name",
+            "status",
+            "assigned_to_name",
+          ]}
           showCard
         />
       </ScreenScrollView>
       <AddFormButton component={<AddCustomerForm />} title="Add Inquiry" />
-      <CustomerActionDrawer
-        open={!!actionCustomer}
-        onClose={() => setActionCustomer(null)}
-        customer={actionCustomer}
-      />
     </YStack>
   );
 }

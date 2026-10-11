@@ -37,6 +37,9 @@ type BeforeBackHandler = (proceed: () => void) => void;
 type SlideOpenContextType = {
   open: (component: ReactNode, title?: string, options?: OpenOptions) => void;
   close: () => void;
+  // Step back one panel (a no-op close when only one is open). Lets a pushed
+  // sub-view return to the screen under it after it finishes.
+  pop: () => void;
   setHeaderRight: (node: ReactNode | null) => void;
   setBeforeBack: (handler: BeforeBackHandler | null) => void;
 };
@@ -184,6 +187,15 @@ export const SlideOpenProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const pop = () => {
+    if (stack.length <= 1) {
+      close();
+      return;
+    }
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setStack((prev) => prev.slice(0, -1));
+  };
+
   const current = stack[stack.length - 1];
 
   // Header back-arrow handler — pop to the previous screen if one was
@@ -191,19 +203,10 @@ export const SlideOpenProvider = ({ children }: { children: ReactNode }) => {
   // If the current screen registered a `beforeBack` guard (e.g. it has
   // unsaved progress), defer to it instead of navigating immediately.
   const goBack = () => {
-    const proceed = () => {
-      if (stack.length <= 1) {
-        close();
-        return;
-      }
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setStack((prev) => prev.slice(0, -1));
-    };
-
     if (current?.beforeBack) {
-      current.beforeBack(proceed);
+      current.beforeBack(pop);
     } else {
-      proceed();
+      pop();
     }
   };
 
@@ -229,7 +232,7 @@ export const SlideOpenProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <SlideOpenContext.Provider
-      value={{ open, close, setHeaderRight, setBeforeBack }}
+      value={{ open, close, pop, setHeaderRight, setBeforeBack }}
     >
       {children}
 

@@ -19,7 +19,7 @@ interface PaginatedEmployeeResponse {
 
 const PAGE_SIZE = 100;
 
-export function useEmployees(enabled: boolean) {
+export function useEmployees(enabled: boolean, upperManagementOnly = false) {
   const [options, setOptions] = useState<DropdownOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -40,7 +40,13 @@ export function useEmployees(enabled: boolean) {
       try {
         const response = await apiClient.get<PaginatedEmployeeResponse>(
           "/master-employee/",
-          { params: { page, page_size: PAGE_SIZE } },
+          {
+            params: {
+              page,
+              page_size: PAGE_SIZE,
+              ...(upperManagementOnly ? { is_upper_management: true } : {}),
+            },
+          },
         );
 
         if (response.success && response.data) {
@@ -70,7 +76,7 @@ export function useEmployees(enabled: boolean) {
         setLoadingMore(false);
       }
     },
-    [],
+    [upperManagementOnly],
   );
 
   useEffect(() => {

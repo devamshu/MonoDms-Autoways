@@ -1,5 +1,9 @@
 import { persistor, store } from "@/host/dms-crm/app/features/store";
-import { usersFilterConfig } from "@/host/dms-crm/components/custom/filter/filter.config";
+import {
+  customersFilterConfig,
+  inquiryFilterConfig,
+  usersFilterConfig,
+} from "@/host/dms-crm/components/custom/filter/filter.config";
 import {
   FilterProvider,
   useFilters,
@@ -19,6 +23,8 @@ const FULLSCREEN_ROUTES = ["/auth", "/modal"];
 
 const ROUTE_FILTER_CONFIGS: Record<string, any> = {
   "/users": usersFilterConfig,
+  "/customers": customersFilterConfig,
+  "/customer": inquiryFilterConfig,
 };
 
 function AppContent() {

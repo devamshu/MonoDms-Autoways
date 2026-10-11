@@ -19,11 +19,13 @@ interface CustomerDetailScreenProps {
  */
 export function CustomerDetailContent({ id }: CustomerDetailScreenProps) {
   const dispatch = useAppDispatch();
-  const { currentCustomer, loading, error } = useAppSelector((state) => ({
-    currentCustomer: state.crmCustomer.currentCustomer,
-    loading: state.crmCustomer.loading,
-    error: state.crmCustomer.error,
-  }));
+  // Separate selectors: a fresh object from one selector makes react-redux warn
+  // about a changed result on every store update.
+  const currentCustomer = useAppSelector(
+    (state) => state.crmCustomer.currentCustomer,
+  );
+  const loading = useAppSelector((state) => state.crmCustomer.loading);
+  const error = useAppSelector((state) => state.crmCustomer.error);
 
   useEffect(() => {
     if (id) dispatch(fetchCustomerById(id));

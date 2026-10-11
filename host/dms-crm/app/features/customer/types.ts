@@ -50,6 +50,9 @@ export interface Customer {
   last_name: string | null;
   name: string;
   contact: string;
+  // Optional: present on the list serializer (same one the web reads) but not
+  // needed by every consumer, so older payloads stay valid.
+  contact_person?: string | null;
   email: Email[];
   address: string;
   address2: string | null;
@@ -63,7 +66,9 @@ export interface Customer {
   gender: string | null;
   vehicle_details: VehicleDetail[];
   deal_vehicle: number | null;
+  deal_vehicle_details?: VehicleDetail | null;
   dealer: number | null;
+  dealer_name?: string | null;
   inquiry_source: number | null;
   inquiry_source_name: string | null;
   kind: number | null;
@@ -75,10 +80,13 @@ export interface Customer {
   status?: string | null;
   is_booked?: boolean;
   booking_approval_status?: string | null;
+  booking_approved_at?: string | null;
+  booking_sheet_no?: string | null;
   booking_rejection_reason?: string | null;
   revert_stage_approval_status?: string | null;
   closure_approval_status?: string | null;
   deal_amount?: string | number | null;
+  booking_amount?: string | number | null;
   total_payments_made?: number | null;
   assigned_to_name?: string | null;
   assigned_to: number | null;
@@ -283,11 +291,27 @@ export interface TestDriveItem {
   created_at: string;
 }
 
+// POST /crm/test-drive/ (web CRM/Inquiry/DetailsTabs/TestDriveTabs).
+export interface CreateTestDrivePayload {
+  inquiry: number;
+  // Dealer-stock id, not a DMS-vehicle id.
+  vehicle: number;
+  reported_by: number | null;
+  scheduled_date: string;
+  end_time: string | null;
+  start_meter: number | null;
+  end_meter: number | null;
+  kms: number | null;
+  test_drive_status: string;
+  feedback: string | null;
+}
+
 export interface QuotationLineItem {
   id: number;
   vehicle_name: string | null;
   variant_name: string | null;
   color_name: string | null;
+  model_year?: string | null;
   vehicle_price?: number | string | null;
   quantity?: number;
   discount?: number | string | null;
@@ -296,20 +320,206 @@ export interface QuotationLineItem {
 export interface QuotationItem {
   id: number;
   quotation_no: string | null;
+  inquiry_no?: string | null;
+  customer_name?: string | null;
+  contact_person?: string | null;
+  dealer_name?: string | null;
+  executive_name?: string | null;
+  signatory_name?: string | null;
+  customer_display_name?: string | null;
+  terms_and_conditions?: string | null;
+  approval_status: string | null;
+  requires_approval?: boolean;
+  requested_approver_name: string | null;
+  approved_by_name?: string | null;
+  approved_at?: string | null;
+  rejected_by_name?: string | null;
+  rejection_reason: string | null;
   created_at: string;
   remarks: string | null;
-  approval_status: string | null;
-  rejection_reason: string | null;
-  requested_approver_name: string | null;
   quotation_vehicles: QuotationLineItem[];
 }
 
+export interface QuotationVehicleInput {
+  vehicle: number;
+  vehicle_price?: number | null;
+  quantity?: number;
+  discount?: number;
+}
+
+// POST /crm/quotations/ (web CRM/Inquiry/DetailsTabs/QuotationTabs).
+export interface CreateQuotationPayload {
+  inquiry: number;
+  signatory: number;
+  // Required by the backend only once a line item's price differs from its
+  // listed price; omitted otherwise.
+  requested_approver?: number;
+  customer_display_name?: string;
+  terms_and_conditions?: string;
+  remarks?: string;
+  quotation_vehicles: QuotationVehicleInput[];
+}
+
+// Used by both /crm/inquiry/{id}/inquiry_documents/ and /crm/inquiry/{id}/sales_documents/.
 export interface DocumentItem {
   id: number;
   master_doc: number | null;
   doc: string | null;
   inquiry: number;
   is_sales_document: boolean;
+}
+
+// GET /crm/inquiry/{id}/payment_process/ — one row per receipt.
+export interface PaymentItem {
+  id: number;
+  inquiry: number | null;
+  payment_type: number | null;
+  payment_type_name?: string | null;
+  payment_mode: number | null;
+  payment_mode_name?: string | null;
+  amount: number | string;
+  document: string | null;
+  receipt_date: string | null;
+  payment_information: string | null;
+  description: string | null;
+  next_installment_date?: string | null;
+  fiscal_year: number | null;
+}
+
+// POST /crm/payment-process/ (multipart).
+export interface CreatePaymentPayload {
+  inquiry: number;
+  payment_type: number;
+  payment_mode: number;
+  amount: number;
+  receipt_date: string;
+  fiscal_year: number;
+  payment_information?: string;
+  description?: string;
+  // Only meaningful for "credit" payment types (web gates on the label).
+  next_installment_date?: string;
+  document?: UploadFile;
+}
+
+// ─── Payment-details tabs (web CRM/Inquiry/PaymentTabs) ──────────────────────
+
+// GET /crm/inquiry/{id}/discount_requests/ — one row per discount request.
+export interface DiscountRequestItem {
+  id: number;
+  inquiry: number;
+  requested_discount_amount: number;
+  given_discount_amount: number | null;
+  status: string;
+  remarks: string | null;
+  created_at: string;
+}
+
+// GET /crm/sales-accessory/?inquiry= — one accessory saved on the deal.
+export interface SalesAccessoryItem {
+  id: number;
+  inquiry: number;
+  sparepart: number | null;
+  sparepart_name?: string | null;
+  part_code?: string | null;
+}
+
+// Vehicle snapshot shared by the sale and its assignment request.
+export interface SalesVehicleDetails {
+  dealer_stock_id: number;
+  stock_status: string;
+  vehicle_name: string | null;
+  variant: string | null;
+  color: string | null;
+  manufacturing_year: string | null;
+  vehicle_type: string | null;
+  chassis_number: string | null;
+}
+
+// GET /crm/sales-assignment-request/?inquiry=&ordering=-created_at
+export interface SalesAssignmentRequestItem {
+  id: number;
+  inquiry: number;
+  dealer_stock_vehicle: number;
+  sales_person: number;
+  sales_person_name: string | null;
+  sales_date: string | null;
+  status: string;
+  status_display?: string | null;
+  rejection_reason?: string | null;
+  vehicle_details: SalesVehicleDetails | null;
+}
+
+// GET /crm/sales/?inquiry__id= — the real Sale, once an assignment is approved.
+export interface SalesRecordItem {
+  id: number;
+  inquiry: number;
+  dealer_stock_vehicle: number;
+  actual_price: number | null;
+  discount_amount: number | null;
+  sold_price: number | null;
+  sales_date: string | null;
+  sales_person_name: string | null;
+  discount_request_details: {
+    id: number;
+    requested_amount: number;
+    approved_amount: number;
+    status: string;
+    remarks: string | null;
+  } | null;
+  vehicle_details: {
+    dealer_stock_id: number;
+    stock_status: string;
+    vehicle_name: string | null;
+    variant: string | null;
+    color: string | null;
+    manufacturing_year: string | null;
+    vehicle_type: string | null;
+    chassis_number: string | null;
+    engine_number: string | null;
+  } | null;
+}
+
+// GET /available-dealer-stock/?dealer_id=&dms_vehicle=&status=STOCK
+export interface DealerStockItem {
+  id: number;
+  chassis_no?: string | null;
+  frame_no?: string | null;
+  vehicle_type?: string | null;
+  dms_vehicle?: {
+    vehicle?: { name: string } | null;
+    variant?: { name: string } | null;
+    color?: { name: string } | null;
+    manufacturing_year?: string | number | null;
+    vehicle_type?: string | null;
+    vehicle_price?:
+      | { dealer_price: number; customer_price: number | null }[]
+      | null;
+  } | null;
+}
+
+// POST /crm/inquiry/{id}/discount/ (string amount, as the web sends it).
+export interface CreateDiscountPayload {
+  discount_amount: number;
+}
+
+// POST /crm/discount-request/{id}/update_amount/.
+export interface UpdateDiscountPayload {
+  amount: number;
+}
+
+// POST /crm/sales-accessory/.
+export interface CreateSalesAccessoryPayload {
+  inquiry: number;
+  sparepart: number;
+}
+
+// POST /crm/sales-assignment-request/ — the "Assign Stock" submit.
+export interface CreateSalesAssignmentRequestPayload {
+  inquiry: number;
+  dealer_stock_vehicle: number;
+  sales_person: number;
+  sales_date: string;
+  discount_request?: number;
 }
 
 // One drawer sub-list per key. The generic fetch thunk switches on this.
@@ -319,7 +529,13 @@ export type CustomerResourceKey =
   | "statuses"
   | "testDrives"
   | "quotations"
-  | "documents";
+  | "documents"
+  | "payments"
+  | "discounts"
+  | "salesDocuments"
+  | "salesAccessories"
+  | "salesRecord"
+  | "salesAssignment";
 
 export interface CustomerResourceState<T = unknown> {
   items: T[];

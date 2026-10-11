@@ -8,6 +8,10 @@ import {
   BookInquiryPayload,
   ConvertToDealPayload,
   CreateDealStatusPayload,
+  CreatePaymentPayload,
+  CreateQuotationPayload,
+  CreateSalesAssignmentRequestPayload,
+  CreateTestDrivePayload,
   Customer,
   CustomerFormData,
   CustomerListParams,
@@ -20,6 +24,7 @@ import {
   PhoneEntry,
   ReviewInquiryPayload,
   StagedVehicle,
+  UploadFile,
 } from "../types";
 import { FollowupPayload } from "../../ccd/types";
 
@@ -314,6 +319,203 @@ export const bookInquiry = createAsyncThunk<
       return response.data;
     }
     return rejectWithValue(response.message || "Failed to book inquiry");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// POST /crm/payment-process/ (multipart). The receipt file, if any, rides along
+// as an RN `{uri,name,type}` object like the booking document does.
+function buildPaymentFormData(payload: CreatePaymentPayload): FormData {
+  const fd = new FormData();
+  const append = (key: string, value: unknown) => {
+    if (value === undefined || value === null || value === "") return;
+    fd.append(key, String(value));
+  };
+  append("inquiry", payload.inquiry);
+  append("payment_type", payload.payment_type);
+  append("payment_mode", payload.payment_mode);
+  append("amount", payload.amount);
+  append("receipt_date", payload.receipt_date);
+  append("fiscal_year", payload.fiscal_year);
+  append("payment_information", payload.payment_information);
+  append("description", payload.description);
+  append("next_installment_date", payload.next_installment_date);
+  if (payload.document) fd.append("document", payload.document as any);
+  return fd;
+}
+
+export const createInquiryPayment = createAsyncThunk<
+  { inquiryId: string | number },
+  { inquiryId: string | number; payload: CreatePaymentPayload },
+  { rejectValue: string }
+>("customer/createInquiryPayment", async ({ inquiryId, payload }, { dispatch, getState, rejectWithValue }) => {
+  try {
+    const response = await customerApi.createInquiryPayment(
+      buildPaymentFormData(payload),
+    );
+    if (response.success) {
+      // Payments list and the row's total_payments_made both move.
+      dispatch(fetchInquiryResource({ inquiryId, key: "payments" }));
+      refetchCustomerList(getState, dispatch);
+      return { inquiryId };
+    }
+    return rejectWithValue(response.message || "Failed to add payment");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// ─── Payment-details writes (web CRM/Inquiry/PaymentTabs) ─────────────────────
+
+// POST /crm/inquiry/{id}/discount/ — raises/updates a discount request. The
+// backend decides whether it applies immediately; returns that status.
+export const createInquiryDiscount = createAsyncThunk<
+  { inquiryId: string | number; applied: boolean },
+  { inquiryId: string | number; amount: number },
+  { rejectValue: string }
+>("customer/createInquiryDiscount", async ({ inquiryId, amount }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await customerApi.createDiscountRequest(inquiryId, {
+      discount_amount: amount,
+    });
+    if (response.success) {
+      dispatch(fetchInquiryResource({ inquiryId, key: "discounts" }));
+      const data = (response.data as { data?: { status?: string } } | undefined)
+        ?.data;
+      return { inquiryId, applied: data?.status === "approved" };
+    }
+    return rejectWithValue(response.message || "Failed to request discount");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// POST /crm/discount-request/{id}/update_amount/ — edit a pending request.
+export const updateInquiryDiscount = createAsyncThunk<
+  { inquiryId: string | number },
+  { inquiryId: string | number; requestId: number; amount: number },
+  { rejectValue: string }
+>("customer/updateInquiryDiscount", async ({ inquiryId, requestId, amount }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await customerApi.updateDiscountRequest(requestId, {
+      amount,
+    });
+    if (response.success) {
+      dispatch(fetchInquiryResource({ inquiryId, key: "discounts" }));
+      return { inquiryId };
+    }
+    return rejectWithValue(response.message || "Failed to update discount");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// POST /crm/document/ (multipart) — sales-document upload. `is_sales_document`
+// is what puts the row in /crm/inquiry/{id}/sales_documents/.
+export const uploadSalesDocument = createAsyncThunk<
+  { inquiryId: string | number },
+  {
+    inquiryId: string | number;
+    masterDoc: number;
+    file: UploadFile;
+    isSalesDocument: boolean;
+  },
+  { rejectValue: string }
+>("customer/uploadSalesDocument", async ({ inquiryId, masterDoc, file, isSalesDocument }, { dispatch, rejectWithValue }) => {
+  try {
+    const fd = new FormData();
+    fd.append("master_doc", String(masterDoc));
+    fd.append("inquiry", String(Number(inquiryId)));
+    fd.append("is_sales_document", String(isSalesDocument));
+    fd.append("doc", file as any);
+
+    const response = await customerApi.uploadSalesDocument(fd);
+    if (response.success) {
+      // A sales document lands in /sales_documents/, a plain one in
+      // /inquiry_documents/ — refresh the list the row actually joins.
+      dispatch(
+        fetchInquiryResource({
+          inquiryId,
+          key: isSalesDocument ? "salesDocuments" : "documents",
+        }),
+      );
+      return { inquiryId };
+    }
+    return rejectWithValue(response.message || "Failed to upload document");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// POST /crm/test-drive/ — schedules a test drive, then refreshes the list.
+export const createInquiryTestDrive = createAsyncThunk<
+  { inquiryId: string | number },
+  { inquiryId: string | number; payload: CreateTestDrivePayload },
+  { rejectValue: string }
+>("customer/createInquiryTestDrive", async ({ inquiryId, payload }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await customerApi.createTestDrive(payload);
+    if (response.success) {
+      dispatch(fetchInquiryResource({ inquiryId, key: "testDrives" }));
+      return { inquiryId };
+    }
+    return rejectWithValue(response.message || "Failed to schedule test drive");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// POST /crm/quotations/ — creates a quotation, then refreshes the list.
+export const createInquiryQuotation = createAsyncThunk<
+  { inquiryId: string | number },
+  { inquiryId: string | number; payload: CreateQuotationPayload },
+  { rejectValue: string }
+>("customer/createInquiryQuotation", async ({ inquiryId, payload }, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await customerApi.createQuotation(payload);
+    if (response.success) {
+      dispatch(fetchInquiryResource({ inquiryId, key: "quotations" }));
+      return { inquiryId };
+    }
+    return rejectWithValue(response.message || "Failed to create quotation");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// "Assign Stock": saves each accessory row, then raises the sales-assignment
+// request. Mirrors the web submitAssignStock ordering (accessories first).
+export const submitSalesAssignment = createAsyncThunk<
+  { inquiryId: string | number },
+  {
+    inquiryId: string | number;
+    payload: CreateSalesAssignmentRequestPayload;
+    sparepartIds: number[];
+  },
+  { rejectValue: string }
+>("customer/submitSalesAssignment", async ({ inquiryId, payload, sparepartIds }, { dispatch, getState, rejectWithValue }) => {
+  try {
+    await Promise.all(
+      sparepartIds.map((sparepart) =>
+        customerApi.createSalesAccessory({
+          inquiry: Number(inquiryId),
+          sparepart,
+        }),
+      ),
+    );
+
+    const response = await customerApi.createSalesAssignmentRequest(payload);
+    if (response.success) {
+      dispatch(fetchInquiryResource({ inquiryId, key: "salesAccessories" }));
+      dispatch(fetchInquiryResource({ inquiryId, key: "salesAssignment" }));
+      dispatch(fetchInquiryResource({ inquiryId, key: "salesRecord" }));
+      refetchCustomerList(getState, dispatch);
+      return { inquiryId };
+    }
+    return rejectWithValue(
+      response.message || "Failed to submit sales assignment",
+    );
   } catch (error) {
     return rejectWithValue(getErrorMessage(error));
   }

@@ -212,7 +212,7 @@ export default function HomeScreen() {
   );
 
   // Same column sets the full CCD screens use, so the dashboard previews stay
-  // in sync with /ccd.
+  // in sync with the CCD pages.
   const inquiryColumns = useMemo(
     () => getCcdInquiryColumns(handleInquiryPress),
     [handleInquiryPress],
@@ -329,12 +329,7 @@ export default function HomeScreen() {
           {/* Recent CCD Inquiry */}
           <SectionHeader
             title="Recent CCD Inquiry"
-            onViewAll={() =>
-              router.push({
-                pathname: "/ccd",
-                params: { tab: "inquiry" },
-              } as any)
-            }
+            onViewAll={() => router.push("/ccd-inquiry" as any)}
           />
           <TableMain
             ref={inquiryTableRef}
@@ -355,12 +350,7 @@ export default function HomeScreen() {
           {/* Recent CCD Retail */}
           <SectionHeader
             title="Recent CCD Retail"
-            onViewAll={() =>
-              router.push({
-                pathname: "/ccd",
-                params: { tab: "retail" },
-              } as any)
-            }
+            onViewAll={() => router.push("/ccd-retail" as any)}
           />
           <TableMain
             ref={retailTableRef}
@@ -380,9 +370,7 @@ export default function HomeScreen() {
 
           <SectionHeader
             title="Recent CCD PSF"
-            onViewAll={() =>
-              router.push({ pathname: "/ccd", params: { tab: "psf" } } as any)
-            }
+            onViewAll={() => router.push("/ccd-psf" as any)}
           />
           <TableMain
             ref={psfTableRef}

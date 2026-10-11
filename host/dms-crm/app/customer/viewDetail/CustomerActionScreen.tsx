@@ -1,39 +1,53 @@
-import { useEffect, useMemo, useState } from "react";
-import { TouchableOpacity } from "react-native";
-import { Text, XStack, YStack, useTheme } from "tamagui";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+} from "react-native";
+import { ScrollView, Text, XStack, YStack, useTheme } from "tamagui";
+import {
   Calendar,
   Car,
   ChevronRight,
   Eye,
   FileText,
   Folder,
+  FolderOpen,
   Lock,
   MessageSquare,
+  Package,
   Pencil,
   Repeat,
   Shuffle,
   StickyNote,
+  Tag,
   Undo2,
   Wallet,
   List,
 } from "lucide-react-native";
-import { BottomDrawer } from "../../../components/custom/drawer";
 import { Badge } from "../../../components/custom/badge";
-import { CustomerDetailContent } from "./CustomerDetailScreen";
+import { CustomerDetailScreen } from "./CustomerDetailScreen";
 import {
   ActivityView,
+  DiscountView,
   DocumentView,
   NotesView,
+  PaymentView,
   QuotationView,
   StatusView,
+  StockSalesView,
   TestDriveView,
 } from "./views";
 import {
   AddActivityForm,
   AddDealStatusForm,
   AddNoteForm,
+  AddPaymentForm,
+  AddQuotationForm,
+  AddSalesDocumentForm,
+  AddTestDriveForm,
   BookForm,
   ChangeKindForm,
   ConvertToDealForm,
@@ -49,6 +63,7 @@ import {
 import { toast } from "../../../components/custom/toast";
 import { clearCustomerResources } from "../../features/customer/store/customer.slice";
 import { useAppDispatch, useAppSelector } from "../../../../../app/features/hooks";
+import { useSlideOpen } from "../../../../../components/auth/slideOpen";
 import type { Customer } from "../../features/customer/types";
 
 // Mirrors Inquiry.revert_stage() on the backend (see web CRM/Inquiry).
@@ -65,7 +80,7 @@ const previousStageName = (status: string): string =>
 // ─── Permission gating ────────────────────────────────────────────────────────
 // Compact port of the web permission engine (core/permissions/permissionMap).
 // Codenames are Django's `<action>_<model>`; /users/auth/me/ groups them by
-// model. Kept local because the drawer is the only screen that gates actions.
+// model. Kept local because the menu is the only screen that gates actions.
 const CRUD_ACTIONS = ["view", "add", "change", "delete"] as const;
 
 function buildPermissionMap(
@@ -118,8 +133,6 @@ function confirmDescription(
   return `Deal Amount: ${deal}\nTotal Paid: ${paid}\n\nRequesting closure will apply immediately if you can already approve closures, otherwise it will need admin/upper-management approval.`;
 }
 
-type IconComponent = typeof Eye;
-
 type ActionKey =
   | "details"
   | "edit"
@@ -133,6 +146,9 @@ type ActionKey =
   | "convert"
   | "book"
   | "payment"
+  | "discount"
+  | "salesDocuments"
+  | "stockSales"
   | "revert"
   | "closure"
   | "changeKind"
@@ -141,9 +157,7 @@ type ActionKey =
 interface ActionItem {
   key: ActionKey;
   label: string;
-  Icon: IconComponent;
-  // Enabled once the matching step is implemented; until then the row is
-  // shown (so the structure is visible) but not pressable.
+  Icon: typeof Eye;
   enabled: boolean;
   info?: string;
 }
@@ -224,28 +238,23 @@ function buildSections(
     if (isConverted) {
       const pipeline: ActionItem[] = [];
 
-      if (isBooked) {
-        pipeline.push({
-          key: "payment",
-          label: "Payments",
-          Icon: Wallet,
-          enabled: false,
-        });
-      } else if (bookingApproval === "pending") {
-        pipeline.push({
-          key: "book",
-          label: "Booking",
-          Icon: Calendar,
-          enabled: false,
-          info: "Pending approval",
-        });
-      } else {
-        pipeline.push({
-          key: "book",
-          label: "Perform Booking",
-          Icon: Calendar,
-          enabled: true,
-        });
+      if (!isBooked) {
+        if (bookingApproval === "pending") {
+          pipeline.push({
+            key: "book",
+            label: "Booking",
+            Icon: Calendar,
+            enabled: false,
+            info: "Pending approval",
+          });
+        } else {
+          pipeline.push({
+            key: "book",
+            label: "Perform Booking",
+            Icon: Calendar,
+            enabled: true,
+          });
+        }
       }
 
       if ((perms.isAdmin || perms.canView) && REVERTIBLE_STATUSES.has(status)) {
@@ -292,6 +301,30 @@ function buildSections(
       }
 
       sections.push({ title: "Pipeline", items: pipeline });
+
+      // Payment details (web CRM/Inquiry/PaymentTabs) — only meaningful once
+      // the deal is booked.
+      if (isBooked) {
+        sections.push({
+          title: "Payments",
+          items: [
+            { key: "payment", label: "Payments", Icon: Wallet, enabled: true },
+            { key: "discount", label: "Discount", Icon: Tag, enabled: true },
+            {
+              key: "salesDocuments",
+              label: "Documents",
+              Icon: FolderOpen,
+              enabled: true,
+            },
+            {
+              key: "stockSales",
+              label: "Stock Sales",
+              Icon: Package,
+              enabled: true,
+            },
+          ],
+        });
+      }
     } else {
       const pipelineItems: ActionItem[] = [
         {
@@ -372,134 +405,56 @@ function ActionRow({ item, onPress }: ActionRowProps) {
           ) : null}
         </YStack>
         {item.enabled ? (
-          <ChevronRight size={18} color={theme.secondaryText?.val} />
+          <ChevronRight size={20} color={theme.secondaryText?.val} />
         ) : null}
       </XStack>
     </TouchableOpacity>
   );
 }
 
-type DrawerView =
-  | "menu"
-  | "details"
-  | "edit"
-  | "activity"
-  | "notes"
-  | "status"
-  | "testDrive"
-  | "quotation"
-  | "documents"
-  | "addNote"
-  | "addActivity"
-  | "addStatus"
-  | "review"
-  | "changeKind"
-  | "convert"
-  | "book";
-
-const VIEW_BY_ACTION: Partial<Record<ActionKey, DrawerView>> = {
-  details: "details",
-  edit: "edit",
-  activity: "activity",
-  notes: "notes",
-  status: "status",
-  testDrive: "testDrive",
-  quotation: "quotation",
-  documents: "documents",
-  review: "review",
-  changeKind: "changeKind",
-  convert: "convert",
-  book: "book",
-};
-
-const VIEW_TITLES: Record<DrawerView, string> = {
-  menu: "",
-  details: "Customer Details",
-  edit: "Edit Customer",
-  activity: "Activity",
-  notes: "Notes",
-  status: "Deal Status",
-  testDrive: "Test Drive",
-  quotation: "Quotation",
-  documents: "Documents",
-  addNote: "Add Note",
-  addActivity: "Add Activity",
-  addStatus: "Add Deal Status",
-  review: "Write Review",
-  changeKind: "Change Kind",
-  convert: "Convert to Deal",
-  book: "Perform Booking",
-};
-
-// Add-forms are reached from their list view, so their back arrow returns to
-// that list instead of the whole menu.
-const BACK_TARGET: Partial<Record<DrawerView, DrawerView>> = {
-  addNote: "notes",
-  addActivity: "activity",
-  addStatus: "status",
-};
-
-function ResourceView({
-  view,
-  inquiryId,
-  onAdd,
-}: {
-  view: DrawerView;
-  inquiryId: string;
-  onAdd: (view: DrawerView) => void;
-}) {
-  switch (view) {
-    case "activity":
-      return (
-        <ActivityView inquiryId={inquiryId} onAdd={() => onAdd("addActivity")} />
-      );
-    case "notes":
-      return <NotesView inquiryId={inquiryId} onAdd={() => onAdd("addNote")} />;
-    case "status":
-      return (
-        <StatusView inquiryId={inquiryId} onAdd={() => onAdd("addStatus")} />
-      );
-    case "testDrive":
-      return <TestDriveView inquiryId={inquiryId} />;
-    case "quotation":
-      return <QuotationView inquiryId={inquiryId} />;
-    case "documents":
-      return <DocumentView inquiryId={inquiryId} />;
-    default:
-      return null;
-  }
+// The slide-over panel only supplies a header + a plain content slot, so each
+// body provides its own scrolling and keyboard handling (the old bottom drawer
+// did this for them).
+function PanelBody({ children }: { children: ReactNode }) {
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        flex={1}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: 16 }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <YStack gap="$3">{children}</YStack>
+        </TouchableWithoutFeedback>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 }
 
-interface CustomerActionDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  customer: Customer | null;
-}
-
-export function CustomerActionDrawer({
-  open,
-  onClose,
+// The action menu and everything it opens live on the shared slide-over stack,
+// so each sub-view slides in on top and the header back-arrow returns to the
+// menu (or the list it came from) with no per-view bookkeeping.
+export function CustomerActionScreen({
   customer,
-}: CustomerActionDrawerProps) {
-  const theme = useTheme();
+  onChanged,
+}: {
+  customer: Customer;
+  onChanged?: () => void;
+}) {
   const dispatch = useAppDispatch();
-  const [view, setView] = useState<DrawerView>("menu");
-  // Revert / closure need only a confirmation, so they run from a modal rather
-  // than a drawer sub-view.
+  const { open, close, pop } = useSlideOpen();
   const [confirmAction, setConfirmAction] = useState<
     "revert" | "closure" | "cancelKind" | null
   >(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  // Always land back on the menu with a clean slate when the drawer is opened
-  // for a customer, so a previous customer's sub-lists never flash.
+  // Fresh reads for each customer the menu is opened for.
   useEffect(() => {
-    if (open) {
-      setView("menu");
-      setConfirmAction(null);
-      dispatch(clearCustomerResources());
-    }
-  }, [open, customer?.id, dispatch]);
+    dispatch(clearCustomerResources());
+  }, [customer.id, dispatch]);
 
   const profile = useAppSelector((state) => state.crmProfile.profile);
   // No permission matrix in the profile (or an older payload) → fail open and
@@ -526,20 +481,199 @@ export function CustomerActionDrawer({
   );
 
   const status =
-    customer?.status ??
-    (customer?.is_converted_to_deal ? "Converted to Deal" : "Open");
+    customer.status ??
+    (customer.is_converted_to_deal ? "Converted to Deal" : "Open");
+
+  const id = String(customer.id);
+
+  // Push a scrolling sub-view on top of the menu.
+  const push = (node: ReactNode, title: string) =>
+    open(<PanelBody>{node}</PanelBody>, title, { push: true });
+
+  // A write that changes the row closes the whole flow and refreshes the list;
+  // a write that only appends to a list steps back to that list (`pop`).
+  const finish = () => {
+    onChanged?.();
+    close();
+  };
 
   const handleAction = (key: ActionKey) => {
-    if (key === "revert" || key === "closure" || key === "cancelKind") {
-      setConfirmAction(key);
-      return;
+    switch (key) {
+      case "details":
+        open(<CustomerDetailScreen id={id} />, "Customer Details", {
+          push: true,
+        });
+        return;
+      case "edit":
+        push(
+          <EditCustomerForm
+            inquiryId={id}
+            customer={customer}
+            onDone={finish}
+          />,
+          "Edit Customer",
+        );
+        return;
+      case "activity":
+        push(
+          <ActivityView
+            inquiryId={id}
+            onAdd={() =>
+              push(
+                <AddActivityForm inquiryId={id} onDone={pop} />,
+                "Add Activity",
+              )
+            }
+          />,
+          "Activity",
+        );
+        return;
+      case "notes":
+        push(
+          <NotesView
+            inquiryId={id}
+            onAdd={() =>
+              push(<AddNoteForm inquiryId={id} onDone={pop} />, "Add Note")
+            }
+          />,
+          "Notes",
+        );
+        return;
+      case "status":
+        push(
+          <StatusView
+            inquiryId={id}
+            onAdd={() =>
+              push(
+                <AddDealStatusForm inquiryId={id} onDone={pop} />,
+                "Add Deal Status",
+              )
+            }
+          />,
+          "Deal Status",
+        );
+        return;
+      case "testDrive":
+        push(
+          <TestDriveView
+            inquiryId={id}
+            onAdd={() =>
+              push(
+                <AddTestDriveForm
+                  inquiryId={id}
+                  dealerId={customer.dealer}
+                  onDone={pop}
+                />,
+                "Schedule Test Drive",
+              )
+            }
+          />,
+          "Test Drive",
+        );
+        return;
+      case "quotation":
+        push(
+          <QuotationView
+            inquiryId={id}
+            onAdd={() =>
+              push(
+                <AddQuotationForm inquiryId={id} onDone={pop} />,
+                "Add Quotation",
+              )
+            }
+          />,
+          "Quotation",
+        );
+        return;
+      case "documents":
+        push(
+          <DocumentView
+            inquiryId={id}
+            onAdd={() =>
+              push(
+                <AddSalesDocumentForm
+                  inquiryId={id}
+                  onDone={pop}
+                  defaultIsSalesDocument={false}
+                />,
+                "Add Document",
+              )
+            }
+          />,
+          "Documents",
+        );
+        return;
+      case "payment":
+        push(
+          <PaymentView
+            inquiryId={id}
+            customer={customer}
+            onAdd={() =>
+              push(
+                <AddPaymentForm inquiryId={id} onDone={pop} />,
+                "Add Payment",
+              )
+            }
+          />,
+          "Payments",
+        );
+        return;
+      case "discount":
+        push(<DiscountView inquiryId={id} />, "Discount");
+        return;
+      case "salesDocuments":
+        push(
+          <DocumentView
+            inquiryId={id}
+            resourceKey="salesDocuments"
+            onAdd={() =>
+              push(
+                <AddSalesDocumentForm inquiryId={id} onDone={pop} />,
+                "Add Document",
+              )
+            }
+          />,
+          "Sales Documents",
+        );
+        return;
+      case "stockSales":
+        push(<StockSalesView inquiryId={id} customer={customer} />, "Stock Sales");
+        return;
+      case "review":
+        push(<ReviewForm inquiryId={id} customer={customer} />, "Write Review");
+        return;
+      case "changeKind":
+        push(
+          <ChangeKindForm
+            inquiryId={id}
+            customer={customer}
+            onDone={finish}
+          />,
+          "Change Kind",
+        );
+        return;
+      case "convert":
+        push(
+          <ConvertToDealForm
+            inquiryId={id}
+            vehicleDetail={customer.vehicle_details?.[0]}
+            onDone={finish}
+          />,
+          "Convert to Deal",
+        );
+        return;
+      case "book":
+        push(<BookForm inquiryId={id} onDone={finish} />, "Perform Booking");
+        return;
+      case "revert":
+      case "closure":
+      case "cancelKind":
+        setConfirmAction(key);
+        return;
     }
-    const next = VIEW_BY_ACTION[key];
-    if (next) setView(next);
   };
 
   const runConfirmAction = async () => {
-    if (!customer || !confirmAction) return;
     setConfirmLoading(true);
     try {
       if (confirmAction === "cancelKind") {
@@ -548,7 +682,7 @@ export function CustomerActionDrawer({
         ).unwrap();
         toast.success("Kind change request cancelled");
         setConfirmAction(null);
-        onClose();
+        finish();
         return;
       }
       if (confirmAction === "revert") {
@@ -571,7 +705,7 @@ export function CustomerActionDrawer({
         );
       }
       setConfirmAction(null);
-      onClose();
+      finish();
     } catch (error) {
       toast.error(
         typeof error === "string" && error ? error : "Action failed",
@@ -581,117 +715,48 @@ export function CustomerActionDrawer({
     }
   };
 
-  const headerTitle =
-    view === "menu" ? customer?.name ?? "Customer" : VIEW_TITLES[view];
-
   return (
-    <BottomDrawer
-      open={open}
-      onOpenChange={(isOpen) => {
-        if (!isOpen) onClose();
-      }}
-      headerTitle={headerTitle}
-      headerLeftContent={
-        view !== "menu" ? (
-          <TouchableOpacity
-            onPress={() => setView(BACK_TARGET[view] ?? "menu")}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <ArrowLeft size={22} color={theme.color?.val} />
-          </TouchableOpacity>
-        ) : undefined
-      }
-      height={80}
-    >
-      {view === "menu" || !customer ? (
-        <YStack>
-          {customer && (
-            <YStack
-              gap="$2"
-              paddingBottom="$3"
-              marginBottom="$2"
-              borderBottomWidth={1}
-              borderBottomColor="$outline"
-            >
-              <Text fontSize="$3" color="$secondaryText">
-                {customer.inq_no ? `Inquiry ${customer.inq_no}` : "Inquiry"}
-              </Text>
-              <XStack gap="$2" alignItems="center" flexWrap="wrap">
-                {customer.kind_name ? (
-                  <Badge label={customer.kind_name} size="sm" variant="info" />
-                ) : null}
-                <Badge
-                  label={status}
-                  size="sm"
-                  variant={statusBadgeVariant(status)}
-                />
-              </XStack>
-            </YStack>
-          )}
-
-          {sections.map((section) => (
-            <YStack key={section.title} marginBottom="$2">
-              <Text
-                fontSize="$2"
-                fontWeight="700"
-                color="$secondaryText"
-                textTransform="uppercase"
-                marginBottom="$1"
-              >
-                {section.title}
-              </Text>
-              {section.items.map((item) => (
-                <ActionRow key={item.key} item={item} onPress={handleAction} />
-              ))}
-            </YStack>
-          ))}
+    <>
+      <PanelBody>
+        <YStack
+          gap="$2"
+          paddingBottom="$3"
+          marginBottom="$2"
+          borderBottomWidth={1}
+          borderBottomColor="$outline"
+        >
+          <Text fontSize="$3" color="$secondaryText">
+            {customer.inq_no ? `Inquiry ${customer.inq_no}` : "Inquiry"}
+          </Text>
+          <XStack gap="$2" alignItems="center" flexWrap="wrap">
+            {customer.kind_name ? (
+              <Badge label={customer.kind_name} size="sm" variant="info" />
+            ) : null}
+            <Badge
+              label={status}
+              size="sm"
+              variant={statusBadgeVariant(status)}
+            />
+          </XStack>
         </YStack>
-      ) : view === "details" ? (
-        <CustomerDetailContent id={String(customer.id)} />
-      ) : view === "addNote" ? (
-        <AddNoteForm
-          inquiryId={String(customer.id)}
-          onDone={() => setView("notes")}
-        />
-      ) : view === "addActivity" ? (
-        <AddActivityForm
-          inquiryId={String(customer.id)}
-          onDone={() => setView("activity")}
-        />
-      ) : view === "addStatus" ? (
-        <AddDealStatusForm
-          inquiryId={String(customer.id)}
-          onDone={() => setView("status")}
-        />
-      ) : view === "review" ? (
-        <ReviewForm inquiryId={String(customer.id)} customer={customer} />
-      ) : view === "changeKind" ? (
-        <ChangeKindForm
-          inquiryId={String(customer.id)}
-          customer={customer}
-          onDone={onClose}
-        />
-      ) : view === "edit" ? (
-        <EditCustomerForm
-          inquiryId={String(customer.id)}
-          customer={customer}
-          onDone={onClose}
-        />
-      ) : view === "convert" ? (
-        <ConvertToDealForm
-          inquiryId={String(customer.id)}
-          vehicleDetail={customer.vehicle_details?.[0]}
-          onDone={onClose}
-        />
-      ) : view === "book" ? (
-        <BookForm inquiryId={String(customer.id)} onDone={onClose} />
-      ) : (
-        <ResourceView
-          view={view}
-          inquiryId={String(customer.id)}
-          onAdd={setView}
-        />
-      )}
+
+        {sections.map((section) => (
+          <YStack key={section.title} marginBottom="$2">
+            <Text
+              fontSize="$2"
+              fontWeight="700"
+              color="$secondaryText"
+              textTransform="uppercase"
+              marginBottom="$1"
+            >
+              {section.title}
+            </Text>
+            {section.items.map((item) => (
+              <ActionRow key={item.key} item={item} onPress={handleAction} />
+            ))}
+          </YStack>
+        ))}
+      </PanelBody>
 
       <GenericModal
         isOpen={confirmAction !== null}
@@ -715,6 +780,6 @@ export function CustomerActionDrawer({
         onCancel={() => setConfirmAction(null)}
         onConfirm={runConfirmAction}
       />
-    </BottomDrawer>
+    </>
   );
 }
