@@ -1,8 +1,9 @@
-import { DmsVehicle, MasterItem, StagedVehicle } from "../../../app/features/customer/types";
+import { MasterItem, StagedVehicle } from "../../../app/features/customer/types";
+import { DmsVehicle } from "../../../app/features/master/types";
 import { Button } from "../buttons/button";
 import { Dropdown, DropdownOption } from "../dropdown";
 import { Trash2 } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
 
 type Props = {
@@ -44,13 +45,20 @@ export function VehicleCascade({
   const [year, setYear] = useState("");
 
   // Load combinations whenever the selected vehicle changes; clear otherwise.
+  // Callbacks are held in refs: parents pass fresh closures each render, and
+  // depending on them would re-fire this effect (and its dispatch) forever.
+  const fetchRef = useRef(onFetchDmsVehicles);
+  const clearRef = useRef(onClearDmsVehicles);
+  fetchRef.current = onFetchDmsVehicles;
+  clearRef.current = onClearDmsVehicles;
+
   useEffect(() => {
     if (vehicleId) {
-      onFetchDmsVehicles(vehicleId);
+      fetchRef.current(vehicleId);
     } else {
-      onClearDmsVehicles();
+      clearRef.current();
     }
-  }, [vehicleId, onFetchDmsVehicles, onClearDmsVehicles]);
+  }, [vehicleId]);
 
   // ── Options ───────────────────────────────────────────────────────────────
   const vehicleOptions: DropdownOption[] = useMemo(

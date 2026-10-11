@@ -12,42 +12,42 @@ interface CustomerDetailScreenProps {
   id: string;
 }
 
-export function CustomerDetailScreen({ id }: CustomerDetailScreenProps) {
+/**
+ * Read-only customer cards. Shared by the full-screen slide-over
+ * (`CustomerDetailScreen`) and the customer action drawer. It renders plain
+ * content — the caller owns the scroll container and outer padding.
+ */
+export function CustomerDetailContent({ id }: CustomerDetailScreenProps) {
   const dispatch = useAppDispatch();
-  const { currentCustomer, loading } = useAppSelector(
-    (state) => state.crmCustomer,
-  );
+  const { currentCustomer, loading, error } = useAppSelector((state) => ({
+    currentCustomer: state.crmCustomer.currentCustomer,
+    loading: state.crmCustomer.loading,
+    error: state.crmCustomer.error,
+  }));
 
   useEffect(() => {
-    dispatch(fetchCustomerById(id));
+    if (id) dispatch(fetchCustomerById(id));
   }, [dispatch, id]);
 
+  // Ignore a customer left over from a previous fetch — only render the one
+  // we actually asked for.
   const customer =
     currentCustomer && String(currentCustomer.id) === String(id)
       ? currentCustomer
       : null;
 
-  if (loading && !customer) {
-    return (
-      <YStack
-        flex={1}
-        alignItems="center"
-        justifyContent="center"
-        backgroundColor="$backgroundSecondary"
-      >
-        <Spinner size="large" color="$secondaryText" />
-      </YStack>
-    );
-  }
-
   if (!customer) {
+    // Spinner until the fetch has run and settled, so a fresh open doesn't
+    // flash "not found" before the request starts.
+    if (loading || !error) {
+      return (
+        <YStack paddingVertical="$10" alignItems="center">
+          <Spinner size="large" color="$secondaryText" />
+        </YStack>
+      );
+    }
     return (
-      <YStack
-        flex={1}
-        alignItems="center"
-        justifyContent="center"
-        backgroundColor="$backgroundSecondary"
-      >
+      <YStack paddingVertical="$10" alignItems="center">
         <Text color="$secondaryText">Customer not found</Text>
       </YStack>
     );
@@ -75,30 +75,38 @@ export function CustomerDetailScreen({ id }: CustomerDetailScreenProps) {
   ];
 
   return (
+    <YStack gap="$4">
+      <UserDetailCard
+        title="Customer Information"
+        rows={[
+          { label: "Inquiry No.", value: formatValue(customer.inq_no) },
+          { label: "Name", value: formatValue(customer.name) },
+          { label: "Inquiry Kind", value: formatValue(customer.kind_name) },
+          { label: "Gender", value: formatValue(customer.gender) },
+          { label: "Address 1", value: formatValue(customer.address) },
+          { label: "Address 2", value: formatValue(customer.address2) },
+          { label: "Country", value: formatValue(customer.country_name) },
+          { label: "City", value: formatValue(customer.city_name) },
+          {
+            label: "Source Type",
+            value: formatValue(customer.inquiry_source_name),
+          },
+          { label: "Remarks", value: formatValue(customer.remarks) },
+        ]}
+      />
+
+      <UserDetailCard title="Vehicle Information" rows={vehicleRows} />
+
+      <UserDetailCard title="Contact Information" rows={contactRows} />
+    </YStack>
+  );
+}
+
+export function CustomerDetailScreen({ id }: CustomerDetailScreenProps) {
+  return (
     <ScrollView flex={1} backgroundColor="$backgroundSecondary">
-      <YStack padding="$4" gap="$4">
-        <UserDetailCard
-          title="Customer Information"
-          rows={[
-            { label: "Inquiry No.", value: formatValue(customer.inq_no) },
-            { label: "Name", value: formatValue(customer.name) },
-            { label: "Inquiry Kind", value: formatValue(customer.kind_name) },
-            { label: "Gender", value: formatValue(customer.gender) },
-            { label: "Address 1", value: formatValue(customer.address) },
-            { label: "Address 2", value: formatValue(customer.address2) },
-            { label: "Country", value: formatValue(customer.country_name) },
-            { label: "City", value: formatValue(customer.city_name) },
-            {
-              label: "Source Type",
-              value: formatValue(customer.inquiry_source_name),
-            },
-            { label: "Remarks", value: formatValue(customer.remarks) },
-          ]}
-        />
-
-        <UserDetailCard title="Vehicle Information" rows={vehicleRows} />
-
-        <UserDetailCard title="Contact Information" rows={contactRows} />
+      <YStack padding="$4">
+        <CustomerDetailContent id={id} />
       </YStack>
     </ScrollView>
   );

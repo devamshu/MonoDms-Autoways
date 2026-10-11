@@ -6,6 +6,8 @@ import {
 import { GenericFilterModal } from "../components/custom/filter/GenericFilterModal";
 import { Navbar } from "../components/custom/navbar";
 import { SlideOpenProvider } from "../../../components/auth/slideOpen";
+import Sidebar from "../components/custom/sideBar";
+import { SidebarProvider } from "../components/custom/sideBarContext";
 import { ToastProvider } from "../components/custom/toast";
 import { useColorScheme } from "../hooks/use-color-scheme";
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack, usePathname, useRouter } from "expo-router";
@@ -90,6 +92,11 @@ function AppContent() {
         </Stack>
       </YStack>
 
+      <Sidebar
+        activeRoute={pathname}
+        onNavigate={(path) => router.push(path as any)}
+      />
+
       {currentFilterConfig && (
         <GenericFilterModal
           visible={isFilterVisible}
@@ -155,9 +162,11 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <FilterProvider>
-          <RootLayoutContent />
-        </FilterProvider>
+        <SidebarProvider>
+          <FilterProvider>
+            <RootLayoutContent />
+          </FilterProvider>
+        </SidebarProvider>
       </PersistGate>
     </Provider>
   );

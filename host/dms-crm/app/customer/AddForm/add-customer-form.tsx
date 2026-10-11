@@ -343,7 +343,7 @@ export function AddCustomerForm() {
           <GenericModal
             isOpen={confirmModalOpen}
             variant="confirmCancel"
-            title="Add Customer"
+            title="Add Inquiry"
             description="Please verify the details before adding customer."
             imageSource={confirmationImage}
             cancelText="Cancel"

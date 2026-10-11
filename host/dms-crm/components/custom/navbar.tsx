@@ -1,14 +1,16 @@
 import { usePathname, useRouter } from "expo-router";
-import { ArrowLeft, Funnel } from "lucide-react-native";
+import { ArrowLeft, Funnel, Menu } from "lucide-react-native";
 import { Platform, TouchableOpacity, View } from "react-native";
 import { Text, XStack } from "tamagui";
+import { useSidebar } from "./sideBarContext";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/playground": "Customer",
   "/explore": "CCD",
-  "/discount": "Discount",
-  "/customer": "Customer",
+  "/discount": "Discount Request",
+  "/customer": "Inquiry",
+  "/followup": "FollowUp",
   "/orders": "Orders",
   "/setting": "Settings",
   "/ccd": "CCD",
@@ -34,9 +36,16 @@ export function Navbar({
 }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { openSidebar } = useSidebar();
 
-  const title = ROUTE_TITLES[pathname] ?? "Dashboard";
-  const showBack = BACK_ROUTES.includes(pathname);
+  const normalizedPathname = pathname.startsWith("/(crm)")
+    ? pathname.replace("/(crm)", "")
+    : pathname;
+
+  const title =
+    ROUTE_TITLES[pathname] ?? ROUTE_TITLES[normalizedPathname] ?? "Dashboard";
+  const showBack =
+    BACK_ROUTES.includes(pathname) || BACK_ROUTES.includes(normalizedPathname);
   const hasFilters = showFilter !== undefined ? showFilter : false;
 
   return (
@@ -47,12 +56,19 @@ export function Navbar({
       alignItems="center"
       gap="$4"
     >
-      {showBack && (
+      {showBack ? (
         <TouchableOpacity
           onPress={() => router.back()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          onPress={openSidebar}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Menu size={26} color="#fff" />
         </TouchableOpacity>
       )}
 

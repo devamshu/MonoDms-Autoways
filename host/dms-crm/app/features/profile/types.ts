@@ -16,6 +16,9 @@ export interface UserProfile {
   is_superuser?: boolean;
   groups?: UserGroup[];
   authorities?: string[];
+  // Full Django codenames (e.g. "change_inquiry") grouped by model, as returned
+  // by GET /users/auth/me/. Same source the web permission engine reads.
+  permissions?: Record<string, string[]>;
 }
 
 export interface ChangePassword {

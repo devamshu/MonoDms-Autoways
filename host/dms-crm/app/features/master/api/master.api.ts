@@ -7,6 +7,8 @@ import {
     MasterDealer,
     MasterFilterOptions,
     MasterInquiryKind,
+    MasterOption,
+    MasterPaymentMode,
     MasterRelation,
     MasterSourceType,
     MasterVariant,
@@ -157,6 +159,66 @@ export const masterApi = {
     return {
       success: false,
       message: getApiErrorMessage(response, "Failed to fetch inquiry kinds"),
+    };
+  },
+
+  // Payment modes — used by the booking form.
+  async fetchPaymentModes(): Promise<{
+    success: boolean;
+    data?: MasterPaymentMode[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: MasterPaymentMode[] }>(
+      "/master-payment-mode/",
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.results };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch payment modes"),
+    };
+  },
+
+  // Variants catalogued for a vehicle (convert-to-deal cascade). Envelope is
+  // {data: [...]} rather than DRF's {results: [...]}.
+  async fetchVariantsByVehicle(
+    vehicleId: string | number,
+  ): Promise<{ success: boolean; data?: MasterOption[]; message?: string }> {
+    const response = await apiClient.get<{ data: MasterOption[] }>(
+      "/logistics/vehicle/dropdown/vehicle-variants/",
+      { params: { vehicle_id: vehicleId } },
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.data ?? [] };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch variants"),
+    };
+  },
+
+  // Colors catalogued for a vehicle + variant.
+  async fetchColorsByVehicleVariant(
+    vehicleId: string | number,
+    variantId: string | number,
+  ): Promise<{ success: boolean; data?: MasterOption[]; message?: string }> {
+    const response = await apiClient.get<{ data: MasterOption[] }>(
+      "/logistics/vehicle/dropdown/vehicle-colors/",
+      { params: { vehicle_id: vehicleId, variant_id: variantId } },
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data.data ?? [] };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch colors"),
     };
   },
 

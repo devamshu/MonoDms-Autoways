@@ -6,20 +6,14 @@ import {
 } from "@/host/dms-crm/components/custom/filter/filterContext";
 import { GenericFilterModal } from "@/host/dms-crm/components/custom/filter/GenericFilterModal";
 import { Navbar } from "@/host/dms-crm/components/custom/navbar";
+import Sidebar from "@/host/dms-crm/components/custom/sideBar";
+import { SidebarProvider } from "@/host/dms-crm/components/custom/sideBarContext";
 import { ToastProvider } from "@/host/dms-crm/components/custom/toast";
-import { usePathname } from "expo-router";
-import {
-  House,
-  Info,
-  LucideSettings,
-  Percent,
-  Users,
-} from "lucide-react-native";
+import { Slot, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { YStack } from "tamagui";
-import { WorkspaceTabsLayout } from "../../components/workspace/workspace-layout";
 
 const FULLSCREEN_ROUTES = ["/auth", "/modal"];
 
@@ -29,6 +23,7 @@ const ROUTE_FILTER_CONFIGS: Record<string, any> = {
 
 function AppContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const prevPathnameRef = useRef(pathname);
 
   const {
@@ -74,36 +69,13 @@ function AppContent() {
         marginTop={isFullscreen ? 0 : -20}
         overflow="hidden"
       >
-        <WorkspaceTabsLayout
-          tabs={[
-            {
-              name: "index",
-              title: "Dashboard",
-              icon: (color: string) => <House size={28} color={color} />,
-            },
-            {
-              name: "customer",
-              title: "Customer",
-              icon: (color: string) => <Users size={28} color={color} />,
-            },
-            {
-              name: "discount",
-              title: "Discount",
-              icon: (color: string) => <Percent size={28} color={color} />,
-            },
-            {
-              name: "ccd",
-              title: "CCD",
-              icon: (color: string) => <Info size={28} color={color} />,
-            },
-            {
-              name: "setting",
-              title: "Settings",
-              icon: (color: string) => <LucideSettings size={28} color={color} />,
-            },
-          ]}
-        />
+        <Slot />
       </YStack>
+
+      <Sidebar
+        activeRoute={pathname}
+        onNavigate={(path) => router.push(path as any)}
+      />
 
       {currentFilterConfig && (
         <GenericFilterModal
@@ -125,9 +97,11 @@ export default function CrmLayout() {
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <ToastProvider>
-          <FilterProvider>
-            <AppContent />
-          </FilterProvider>
+          <SidebarProvider>
+            <FilterProvider>
+              <AppContent />
+            </FilterProvider>
+          </SidebarProvider>
         </ToastProvider>
       </PersistGate>
     </Provider>

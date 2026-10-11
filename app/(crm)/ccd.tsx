@@ -1,18 +1,14 @@
 import { useAppDispatch, useAppSelector } from "@/app/features/hooks";
 import { ScreenScrollView } from "@/components/workspace/screen-scroll-view";
-import { AddFollowupForm } from "@/host/dms-crm/app/ccd/AddForm/add-followup-form";
 import { AddInquiryForm } from "@/host/dms-crm/app/ccd/AddForm/add-inquiry-form";
-import { CCDFollowupScreen } from "@/host/dms-crm/app/ccd/ccd-followup";
 import { CCDInquiryScreen } from "@/host/dms-crm/app/ccd/ccd-inquiry";
 import { CCDPsfScreen } from "@/host/dms-crm/app/ccd/ccd-psf";
 import { CCDRetailScreen } from "@/host/dms-crm/app/ccd/ccd-retail";
 import {
   clearCustomers,
   setActiveModule,
-  setFollowupMode,
 } from "@/host/dms-crm/app/features/ccd/store/ccd.slice";
 import {
-  fetchFollowups,
   fetchModuleCustomers,
   fetchModules,
 } from "@/host/dms-crm/app/features/ccd/store/ccd.thunks";
@@ -31,7 +27,6 @@ export default function CCDScreen() {
     moduleCustomersArgs,
   } = useAppSelector((state) => state.crmCcd);
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const followupActive = activeModuleType === "followup";
 
   useEffect(() => {
     dispatch(fetchModules());
@@ -45,38 +40,26 @@ export default function CCDScreen() {
     if (modules.length === 0) return;
 
     if (tab) {
-      if (tab === "followup") {
-        dispatch(setFollowupMode());
-      } else {
-        const target = modules.find((m) => m.module_type === tab);
-        if (target && target.id !== activeModuleId) {
-          dispatch(setActiveModule(target.id));
-          dispatch(clearCustomers());
-        }
+      const target = modules.find((m) => m.module_type === tab);
+      if (target && target.id !== activeModuleId) {
+        dispatch(setActiveModule(target.id));
+        dispatch(clearCustomers());
       }
       router.setParams({ tab: undefined });
       return;
     }
 
-    if (!activeModuleId && !followupActive) {
+    if (!activeModuleId) {
       dispatch(setActiveModule(modules[0].id));
     }
-  }, [modules, activeModuleId, tab, followupActive, dispatch]);
+  }, [modules, activeModuleId, tab, dispatch]);
 
   const handleTabChange = (moduleId: number) => {
     dispatch(setActiveModule(moduleId));
     dispatch(clearCustomers());
   };
 
-  const handleFollowupTabPress = () => {
-    dispatch(setFollowupMode());
-  };
-
   const handleRefresh = useCallback(async () => {
-    if (followupActive) {
-      await dispatch(fetchFollowups());
-      return;
-    }
     await dispatch(fetchModules());
     if (!activeModuleId) return;
     await dispatch(
@@ -86,13 +69,9 @@ export default function CCDScreen() {
           : { moduleId: activeModuleId, params: { page: 1, page_size: 5 } },
       ),
     );
-  }, [dispatch, activeModuleId, moduleCustomersArgs, followupActive]);
+  }, [dispatch, activeModuleId, moduleCustomersArgs]);
 
   const renderContent = () => {
-    if (followupActive) {
-      return <CCDFollowupScreen />;
-    }
-
     if (loading && modules.length === 0) {
       return (
         <YStack
@@ -151,7 +130,7 @@ export default function CCDScreen() {
       {/* Dynamic Tabs */}
       <XStack gap="$4" padding="$4" backgroundColor="$background">
         {modules.map((module) => {
-          const isActive = !followupActive && activeModuleId === module.id;
+          const isActive = activeModuleId === module.id;
           return (
             <XStack
               key={module.id}
@@ -181,33 +160,6 @@ export default function CCDScreen() {
             </XStack>
           );
         })}
-
-        {/* Inquiry Followup Tab */}
-        <XStack
-          flex={1}
-          height={34}
-          borderRadius={21}
-          backgroundColor={followupActive ? "$primary" : "$background"}
-          alignItems="center"
-          justifyContent="center"
-          onPress={handleFollowupTabPress}
-          pressStyle={{ opacity: 0.8 }}
-          style={{
-            shadowColor: "$black",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 3,
-          }}
-        >
-          <Text
-            color={followupActive ? "white" : "#666"}
-            fontWeight="600"
-            fontSize={14}
-          >
-            Followup
-          </Text>
-        </XStack>
       </XStack>
 
       {/* Content */}
@@ -216,13 +168,8 @@ export default function CCDScreen() {
       </ScreenScrollView>
 
       {/* FAB - Only show for Inquiry module */}
-      {!followupActive && activeModuleType === "inquiry" && activeModuleId && (
+      {activeModuleType === "inquiry" && activeModuleId && (
         <AddFormButton component={<AddInquiryForm />} title="Add Inquiry" />
-      )}
-
-      {/* FAB - Show for Followup tab */}
-      {followupActive && (
-        <AddFormButton component={<AddFollowupForm />} title="Add Followup" />
       )}
     </YStack>
   );

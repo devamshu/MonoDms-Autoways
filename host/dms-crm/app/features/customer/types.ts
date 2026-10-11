@@ -27,6 +27,11 @@ export interface Email {
 export interface VehicleDetail {
   id: number;
   name: string;
+  // Master FK ids (InquiryViewSerializer.get_vehicle_details) — used to prefill
+  // the Convert-to-Deal cascade. Optional so older payloads stay valid.
+  vehicle?: number | null;
+  variant?: number | null;
+  color?: number | null;
   vehicle_name: string;
   variant_name: string;
   color_name: string;
@@ -64,7 +69,27 @@ export interface Customer {
   kind: number | null;
   kind_name: string | null;
   is_converted_to_deal: boolean;
+  // Pipeline/booking status fields returned by GET /crm/inquiry/ (used by the
+  // action drawer to decide which actions apply). Optional so older payloads
+  // without them don't break the list.
+  status?: string | null;
+  is_booked?: boolean;
+  booking_approval_status?: string | null;
+  booking_rejection_reason?: string | null;
+  revert_stage_approval_status?: string | null;
+  closure_approval_status?: string | null;
+  deal_amount?: string | number | null;
+  total_payments_made?: number | null;
+  assigned_to_name?: string | null;
   assigned_to: number | null;
+  // Review state (set via POST /crm/inquiry/{id}/review/).
+  salesperson_voice?: string | null;
+  hod_voice?: string | null;
+  is_reviewed?: boolean;
+  // Pending-kind-change state (POST /crm/inquiry/{id}/request-kind-change/ and
+  // the cancel counterpart).
+  kind_change_approval_status?: string | null;
+  kind_change_note?: string | null;
   is_followup: boolean;
   followup_status: string | null;
   remarks: string | null;
@@ -94,6 +119,7 @@ export interface CustomerListParams {
   search?: string;
   ordering?: string;
   is_converted_to_deal?: string;
+  is_booked?: string;
   is_followup?: string;
   kind?: string;
   dealer?: string;
@@ -204,6 +230,176 @@ export interface InquiryDetail extends Customer {
     country: string | null;
     gender: string | null;
   };
+}
+
+// ─── Inquiry sub-resources (read-only lists shown in the action drawer) ───────
+
+export interface ActivityItem {
+  id: number;
+  created_at: string;
+  followup_date: string | null;
+  followup_date_np?: string | null;
+  next_followup_date?: string | null;
+  time: string | null;
+  priority: string | null;
+  followup_type: string | null;
+  followup_details: string | null;
+  is_activity: boolean;
+  executive_name: string | null;
+}
+
+export interface NoteItem {
+  id: number;
+  inquiry?: number;
+  inquiry_id?: number;
+  note: string;
+  created_at?: string | null;
+  created_by_name?: string | null;
+}
+
+export interface DealStatusItem {
+  id: number;
+  status_name: string | null;
+  sub_status_name: string | null;
+  status_date: string | null;
+  remarks: string | null;
+  created_by_name?: string | null;
+  created_at: string;
+  is_approved?: boolean | null;
+}
+
+export interface TestDriveItem {
+  id: number;
+  inquiry: number;
+  vehicle: number | null;
+  reported_by: number | null;
+  scheduled_date: string | null;
+  end_time: string | null;
+  start_meter: number | null;
+  end_meter: number | null;
+  kms: number | null;
+  test_drive_status: string | null;
+  feedback: string | null;
+  created_at: string;
+}
+
+export interface QuotationLineItem {
+  id: number;
+  vehicle_name: string | null;
+  variant_name: string | null;
+  color_name: string | null;
+  vehicle_price?: number | string | null;
+  quantity?: number;
+  discount?: number | string | null;
+}
+
+export interface QuotationItem {
+  id: number;
+  quotation_no: string | null;
+  created_at: string;
+  remarks: string | null;
+  approval_status: string | null;
+  rejection_reason: string | null;
+  requested_approver_name: string | null;
+  quotation_vehicles: QuotationLineItem[];
+}
+
+export interface DocumentItem {
+  id: number;
+  master_doc: number | null;
+  doc: string | null;
+  inquiry: number;
+  is_sales_document: boolean;
+}
+
+// One drawer sub-list per key. The generic fetch thunk switches on this.
+export type CustomerResourceKey =
+  | "activities"
+  | "notes"
+  | "statuses"
+  | "testDrives"
+  | "quotations"
+  | "documents";
+
+export interface CustomerResourceState<T = unknown> {
+  items: T[];
+  loading: boolean;
+  error: string | null;
+  loaded: boolean;
+}
+
+// ─── Writes from the action drawer (Phase 3) ──────────────────────────────────
+// Payloads mirror the web CRM/Inquiry forms (see CRM/Inquiry/DetailsTabs).
+export interface CreateNotePayload {
+  inquiry: number;
+  note: string;
+}
+
+export interface CreateDealStatusPayload {
+  inquiry: number;
+  status: number;
+  sub_status: number | null;
+  remarks: string | null;
+}
+
+// ─── Pipeline actions (Phase 4) ───────────────────────────────────────────────
+// POST /crm/inquiry/{id}/review/ — either voice may be sent alone.
+export interface ReviewInquiryPayload {
+  salesperson_voice?: string;
+  hod_voice?: string;
+}
+
+// DMS envelope returned by the pipeline-action POSTs: { data: {...inquiry}, message }.
+export type InquiryActionEnvelope = {
+  data?: Record<string, any>;
+  message?: string;
+};
+
+export interface KindChangePayload {
+  kind: number;
+  note?: string;
+}
+
+// POST /crm/inquiry/{id}/convert_to_deal/. IDs are master vehicle/variant/
+// color ids; `year` is YYYY-MM-DD.
+export interface ConvertToDealPayload {
+  vehicle: number;
+  variant: number;
+  color: number;
+  year: string;
+  discount_amount?: number;
+}
+
+// A file staged for upload, in the shape React Native's FormData wants.
+export interface UploadFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+export interface BookExchangeVehiclePayload {
+  name: string;
+  model_year: number;
+  valuation_amount: number;
+  registration_number: string;
+  bluebook_image?: UploadFile;
+}
+
+// POST /crm/inquiry/{id}/book/ (multipart).
+export interface BookInquiryPayload {
+  deal_amount: number;
+  booking_amount: number;
+  credit_period_days?: number;
+  payment_mode: number;
+  bank?: string;
+  document?: UploadFile;
+  notes?: string;
+  insurance_covered_by: "company" | "customer";
+  insurance_company_name?: string;
+  road_tax_covered_by: "company" | "customer";
+  route_permit_covered_by: "company" | "customer";
+  pan_vat_no?: string;
+  exchange_vehicles?: BookExchangeVehiclePayload[];
 }
 
 // Multi-step form state

@@ -36,6 +36,18 @@ export interface MasterColor {
   rank: number;
 }
 
+// Minimal shape the scoped dropdown endpoints and other simple masters return.
+export interface MasterOption {
+  id: number;
+  name: string;
+}
+
+export interface MasterPaymentMode {
+  id: number;
+  name: string;
+  rank?: number;
+}
+
 export interface MasterRelation {
   id: number;
   name: string;
@@ -59,6 +71,8 @@ export interface MasterInquiryKind {
   id: number;
   name: string;
   status: boolean;
+  // Used to detect a downgrade (needs a note). Present on the API response.
+  rank?: number;
 }
 
 export interface MasterSourceType {

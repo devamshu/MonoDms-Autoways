@@ -1,8 +1,8 @@
 import { useAppDispatch, useAppSelector } from "@/app/features/hooks";
-import { useSlideOpen } from "@/components/auth/slideOpen";
 import { ScreenScrollView } from "@/components/workspace/screen-scroll-view";
 import { AddCustomerForm } from "@/host/dms-crm/app/customer/AddForm/add-customer-form";
-import { CustomerDetailScreen } from "@/host/dms-crm/app/customer/viewDetail/CustomerDetailScreen";
+import { CustomerActionDrawer } from "@/host/dms-crm/app/customer/viewDetail/CustomerActionDrawer";
+import type { Customer } from "@/host/dms-crm/app/features/customer/types";
 import { fetchCustomers } from "@/host/dms-crm/app/features/customer/store/customer.thunks";
 import { AddFormButton } from "@/host/dms-crm/components/custom/buttons/addFormButton";
 import { getCustomerColumns } from "@/host/dms-crm/components/custom/columns/customer.columns";
@@ -10,7 +10,7 @@ import { useFilters } from "@/host/dms-crm/components/custom/filter/filterContex
 import { buildTableApiParams } from "@/host/dms-crm/components/custom/table/buildFetchParams";
 import { TableMain } from "@/host/dms-crm/components/custom/table/main";
 import { FetchParams } from "@/host/dms-crm/components/custom/table/types";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { YStack } from "tamagui";
 
 export default function CustomerScreen() {
@@ -21,20 +21,29 @@ export default function CustomerScreen() {
 
   const { activeFilters } = useFilters();
   const tableRef = useRef<any>(null);
-  const { open } = useSlideOpen();
+
+  // The customer whose action drawer is open. Opening the drawer keeps the
+  // list mounted underneath, so filters/search/page/scroll are preserved.
+  const [actionCustomer, setActionCustomer] = useState<Customer | null>(null);
 
   const handleCustomerPress = useCallback(
     (id: string) => {
-      open(<CustomerDetailScreen id={id} />, "Customer Details");
+      const row = customers.find((c) => String(c.id) === id) ?? null;
+      setActionCustomer(row);
     },
-    [open],
+    [customers],
   );
 
   const columns = getCustomerColumns(handleCustomerPress);
 
   const fetchData = useCallback(
     async (params: FetchParams) => {
-      dispatch(fetchCustomers(buildTableApiParams(params, activeFilters)));
+      dispatch(
+        fetchCustomers({
+          ...buildTableApiParams(params, activeFilters),
+          is_booked: "false",
+        }),
+      );
     },
     [dispatch, activeFilters],
   );
@@ -60,17 +69,16 @@ export default function CustomerScreen() {
           }}
           emptyMessage="No customers found"
           isLoading={loading}
-          defaultVisibleColumns={[
-            "sn",
-            "name",
-            "kind_name",
-            "is_converted_to_deal",
-            "followup_status",
-          ]}
+          defaultVisibleColumns={["sn", "name", "kind_name", "is_converted_to_deal"]}
           showCard
         />
       </ScreenScrollView>
-      <AddFormButton component={<AddCustomerForm />} title="Add Customer" />
+      <AddFormButton component={<AddCustomerForm />} title="Add Inquiry" />
+      <CustomerActionDrawer
+        open={!!actionCustomer}
+        onClose={() => setActionCustomer(null)}
+        customer={actionCustomer}
+      />
     </YStack>
   );
 }
