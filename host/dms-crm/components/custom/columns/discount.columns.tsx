@@ -1,6 +1,8 @@
 import { formatValue } from "../../../app/utils/validator/emptyFieldValidator";
 import { Column } from "../../../components/custom/table/types";
 import { Text } from "tamagui";
+import { Badge, getBadgeVariant } from "../badge";
+import { formatNpr } from "../../../app/utils/format/format";
 
 export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
   {
@@ -67,7 +69,7 @@ export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
     width: 140,
     render: (value: number | null) => (
       <Text numberOfLines={1} color="$color">
-        {formatValue(value)}
+        {formatNpr(value)}
       </Text>
     ),
   },
@@ -79,7 +81,7 @@ export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
     width: 120,
     render: (value: number | null) => (
       <Text numberOfLines={1} color="$color">
-        {formatValue(value)}
+        {formatNpr(value)}
       </Text>
     ),
   },
@@ -112,12 +114,15 @@ export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
     label: "Status",
     accessor: "status_display",
     sortable: true,
-    width: 100,
-    render: (value: string | null) => (
-      <Text numberOfLines={1} color="$color">
-        {formatValue(value)}
-      </Text>
-    ),
+    width: 120,
+    render: (value: string | null) =>
+      value ? (
+        <Badge label={value} size="sm" variant={getBadgeVariant(value)} />
+      ) : (
+        <Text numberOfLines={1} color="$color">
+          {formatValue(value)}
+        </Text>
+      ),
   },
   {
     id: "requested_by_name",

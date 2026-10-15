@@ -103,7 +103,17 @@ export const getBadgeVariant = (
   return statusMap[lowerStatus] ?? "default";
 };
 
-export const CallStatusBadge = ({ status }: { status: string }) => {
+export function statusBadgeVariant(status: string): BadgeProps["variant"] {
+  const s = status.toLowerCase();
+  if (s === "sold" || s === "completed" || s === "booked") return "success";
+  if (s === "closed") return "default";
+  if (s.includes("pending")) return "warning";
+  if (s.includes("rejected")) return "error";
+  if (s === "converted to deal") return "info";
+  return "default";
+}
+
+export const CallStatusBadge =({ status }: { status: string }) => {
   let variant: BadgeProps["variant"] = "default";
   let label = status;
 

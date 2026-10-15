@@ -23,8 +23,6 @@ export default function CustomerScreen() {
   const { open } = useSlideOpen();
   const tableRef = useRef<any>(null);
 
-  // Row tap opens the action menu as a full slide-over; its sub-views push on
-  // top of it, and the list underneath stays mounted the whole time.
   const handleCustomerPress = useCallback(
     (id: string) => {
       const row = customers.find((c) => String(c.id) === id);
@@ -54,9 +52,7 @@ export default function CustomerScreen() {
     [dispatch, activeFilters],
   );
 
-  // TableMain holds onFetchData in a ref, so a new activeFilters identity does
-  // not retrigger its fetch effect — refresh explicitly instead. Skips the
-  // first run so it doesn't double-fetch alongside TableMain's initial fetch.
+
   const previousFiltersJson = useRef<string | null>(null);
   useEffect(() => {
     const json = JSON.stringify(activeFilters);
@@ -82,7 +78,7 @@ export default function CustomerScreen() {
           enablePagination
           enableColumnManagement
           enableSorting
-          searchPlaceholder="Search customers..."
+          searchPlaceholder="Search Inquiry..."
           itemsPerPage={10}
           itemsPerPageOptions={[10, 25, 50]}
           keyExtractor={(item) => {

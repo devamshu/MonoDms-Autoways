@@ -1,5 +1,6 @@
 import { Column } from "@/components/custom/table/types";
 import { Text } from "tamagui";
+import { Badge, statusBadgeVariant } from "../badge";
 import { formatNpr } from "../../../app/utils/format/format";
 import { formatValue } from "../../../app/utils/validator/emptyFieldValidator";
 
@@ -166,8 +167,9 @@ export const getCustomerColumns = (onPress: (id: string) => void): Column[] => [
     label: "Kind",
     accessor: "kind_name",
     sortable: true,
-    width: 100,
-    render: (value: any) => <Text numberOfLines={1}>{safeFormat(value)}</Text>,
+    width: 110,
+    render: (value: any) =>
+      value ? <Badge label={String(value)} size="sm" variant="info" /> : textCell(value),
   },
   {
     id: "inquiry_source_name",
@@ -235,8 +237,13 @@ export const getCustomerColumns = (onPress: (id: string) => void): Column[] => [
     label: "Status",
     accessor: "status",
     sortable: true,
-    width: 110,
-    render: (value: any) => <Text numberOfLines={1}>{safeFormat(value)}</Text>,
+    width: 150,
+    render: (value: any) =>
+      value ? (
+        <Badge label={String(value)} size="sm" variant={statusBadgeVariant(String(value))} />
+      ) : (
+        textCell(value)
+      ),
   },
   {
     id: "assigned_to_name",

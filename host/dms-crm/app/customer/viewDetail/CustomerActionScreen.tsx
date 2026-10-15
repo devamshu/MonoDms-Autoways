@@ -27,7 +27,7 @@ import {
   Wallet,
   List,
 } from "lucide-react-native";
-import { Badge } from "../../../components/custom/badge";
+import { Badge, statusBadgeVariant } from "../../../components/custom/badge";
 import { CustomerDetailScreen } from "./CustomerDetailScreen";
 import {
   ActivityView,
@@ -165,18 +165,6 @@ interface ActionItem {
 interface ActionSection {
   title: string;
   items: ActionItem[];
-}
-
-function statusBadgeVariant(
-  status: string,
-): "success" | "error" | "warning" | "info" | "default" {
-  const s = status.toLowerCase();
-  if (s === "sold" || s === "completed" || s === "booked") return "success";
-  if (s === "closed") return "default";
-  if (s.includes("pending")) return "warning";
-  if (s.includes("rejected")) return "error";
-  if (s === "converted to deal") return "info";
-  return "default";
 }
 
 interface InquiryPermissions {

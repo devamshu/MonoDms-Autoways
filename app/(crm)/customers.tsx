@@ -21,8 +21,6 @@ export default function CustomersScreen() {
   const { open } = useSlideOpen();
   const tableRef = useRef<any>(null);
 
-  // Row tap opens the action menu as a full slide-over; its sub-views push on
-  // top of it, and the list underneath stays mounted the whole time.
   const handleCustomerPress = useCallback(
     (id: string) => {
       const row = customers.find((c) => String(c.id) === id);
@@ -42,9 +40,6 @@ export default function CustomersScreen() {
 
   const fetchData = useCallback(
     async (params: FetchParams) => {
-      // `customer_status` is the navbar filter's UI id (All/Booked/Sold); it is
-      // translated to is_sold and kept out of the query string. Booked means
-      // booked-but-not-yet-sold, Sold means a Sales record exists.
       const { customer_status, ...filters } = activeFilters;
       const isSold =
         customer_status === "sold"
@@ -63,9 +58,6 @@ export default function CustomersScreen() {
     [dispatch, activeFilters],
   );
 
-  // TableMain holds onFetchData in a ref, so a new activeFilters identity does
-  // not retrigger its fetch effect — refresh explicitly instead. Skips the
-  // first run so it doesn't double-fetch alongside TableMain's initial fetch.
   const previousFiltersJson = useRef<string | null>(null);
   useEffect(() => {
     const json = JSON.stringify(activeFilters);
