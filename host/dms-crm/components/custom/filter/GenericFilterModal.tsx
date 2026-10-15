@@ -202,12 +202,9 @@ export const GenericFilterModal = memo(
     }, []);
 
     const handleApply = useCallback(() => {
-      if (__DEV__) {
-        console.log(`[Filters] ${title} applied:`, localFilters);
-      }
       onApply(localFilters);
       onClose();
-    }, [localFilters, onApply, onClose, title]);
+    }, [localFilters, onApply, onClose]);
 
     const handleReset = useCallback(() => {
       onReset();

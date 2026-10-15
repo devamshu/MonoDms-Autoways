@@ -4,6 +4,8 @@ import { Images } from "../../constants/image";
 
 const noNotificationImage = Images.noNotification;
 
+const imageStyle = { width: 120, height: 120, resizeMode: "contain" } as const;
+
 export default function NotificationsScreen() {
   return (
     <YStack flex={1} backgroundColor="$background">
@@ -31,11 +33,7 @@ export default function NotificationsScreen() {
             {/* Notification Image */}
             <Image
               source={noNotificationImage}
-              style={{
-                width: 120,
-                height: 120,
-                resizeMode: "contain",
-              }}
+              style={imageStyle}
             />
 
             {/* Title */}

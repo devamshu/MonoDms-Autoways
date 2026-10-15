@@ -8,8 +8,10 @@ import { useFilters } from "@/host/dms-crm/components/custom/filter/filterContex
 import { buildTableApiParams } from "@/host/dms-crm/components/custom/table/buildFetchParams";
 import { TableMain } from "@/host/dms-crm/components/custom/table/main";
 import { FetchParams } from "@/host/dms-crm/components/custom/table/types";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { YStack } from "tamagui";
+
+const keyExtractor = (item: any) => item.id.toString();
 
 export default function DiscountScreen() {
   const dispatch = useAppDispatch();
@@ -28,7 +30,10 @@ export default function DiscountScreen() {
     [open],
   );
 
-  const columns = getDiscountColumns(handleDiscountPress);
+  const columns = useMemo(
+    () => getDiscountColumns(handleDiscountPress),
+    [handleDiscountPress],
+  );
 
   const fetchData = useCallback(
     async (params: FetchParams) => {
@@ -53,7 +58,7 @@ export default function DiscountScreen() {
           searchPlaceholder="Search discounts..."
           itemsPerPage={10}
           itemsPerPageOptions={[10, 25, 50]}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={keyExtractor}
           emptyMessage="No discount requests found"
           isLoading={loading}
           defaultVisibleColumns={[

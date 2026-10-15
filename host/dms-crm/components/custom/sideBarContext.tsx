@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 interface SidebarContextValue {
   isOpen: boolean;
@@ -17,15 +23,16 @@ const SidebarContext = createContext<SidebarContextValue>({
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const openSidebar = useCallback(() => setIsOpen(true), []);
+  const closeSidebar = useCallback(() => setIsOpen(false), []);
+  const toggleSidebar = useCallback(() => setIsOpen((p) => !p), []);
+  const value = useMemo(
+    () => ({ isOpen, openSidebar, closeSidebar, toggleSidebar }),
+    [isOpen, openSidebar, closeSidebar, toggleSidebar],
+  );
+
   return (
-    <SidebarContext.Provider
-      value={{
-        isOpen,
-        openSidebar: () => setIsOpen(true),
-        closeSidebar: () => setIsOpen(false),
-        toggleSidebar: () => setIsOpen((p) => !p),
-      }}
-    >
+    <SidebarContext.Provider value={value}>
       {children}
     </SidebarContext.Provider>
   );

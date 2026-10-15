@@ -118,8 +118,6 @@ export function AddFollowupForm({ onSuccess, onClose }: AddFollowupFormProps) {
         followup_details: formData.followup_details,
       };
 
-      console.log("[AddFollowup] POST /crm/followup/ payload:", JSON.stringify(payload, null, 2));
-
       await dispatch(createFollowup(payload)).unwrap();
       toast.success("Followup created successfully");
       onSuccess?.();

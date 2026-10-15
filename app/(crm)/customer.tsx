@@ -10,8 +10,11 @@ import { useFilters } from "@/host/dms-crm/components/custom/filter/filterContex
 import { buildTableApiParams } from "@/host/dms-crm/components/custom/table/buildFetchParams";
 import { TableMain } from "@/host/dms-crm/components/custom/table/main";
 import { FetchParams } from "@/host/dms-crm/components/custom/table/types";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { YStack } from "tamagui";
+
+const keyExtractor = (item: any) =>
+  item?.id?.toString() ?? Math.random().toString();
 
 export default function CustomerScreen() {
   const dispatch = useAppDispatch();
@@ -38,7 +41,10 @@ export default function CustomerScreen() {
     [customers, open],
   );
 
-  const columns = getCustomerColumns(handleCustomerPress);
+  const columns = useMemo(
+    () => getCustomerColumns(handleCustomerPress),
+    [handleCustomerPress],
+  );
 
   const fetchData = useCallback(
     async (params: FetchParams) => {
@@ -81,9 +87,7 @@ export default function CustomerScreen() {
           searchPlaceholder="Search Inquiry..."
           itemsPerPage={10}
           itemsPerPageOptions={[10, 25, 50]}
-          keyExtractor={(item) => {
-            return item?.id?.toString() ?? Math.random().toString();
-          }}
+          keyExtractor={keyExtractor}
           emptyMessage="No customers found"
           isLoading={loading}
           defaultVisibleColumns={[

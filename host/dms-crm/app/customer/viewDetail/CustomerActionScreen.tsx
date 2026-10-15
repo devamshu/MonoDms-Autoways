@@ -74,6 +74,15 @@ const REVERTIBLE_STATUSES = new Set([
   "Converted to Deal",
 ]);
 
+const resolveStatus = (customer: Customer): string =>
+  customer.status ??
+  (customer.is_converted_to_deal ? "Converted to Deal" : "Open");
+
+const PANEL_FLEX_STYLE = { flex: 1 } as const;
+const PANEL_CONTENT_STYLE = { padding: 16 } as const;
+const ROW_ENABLED_STYLE = { opacity: 1 } as const;
+const ROW_DISABLED_STYLE = { opacity: 0.4 } as const;
+
 const previousStageName = (status: string): string =>
   status === "Converted to Deal" ? "Open" : "Converted to Deal";
 
@@ -179,9 +188,7 @@ function buildSections(
 ): ActionSection[] {
   if (!customer) return [];
 
-  const status =
-    customer.status ??
-    (customer.is_converted_to_deal ? "Converted to Deal" : "Open");
+  const status = resolveStatus(customer);
   const isClosed = status === "Closed";
   const isConverted = !!customer.is_converted_to_deal;
   const isBooked = !!customer.is_booked;
@@ -378,7 +385,7 @@ function ActionRow({ item, onPress }: ActionRowProps) {
       activeOpacity={0.7}
       disabled={!item.enabled}
       onPress={() => onPress(item.key)}
-      style={{ opacity: item.enabled ? 1 : 0.4 }}
+      style={item.enabled ? ROW_ENABLED_STYLE : ROW_DISABLED_STYLE}
     >
       <XStack alignItems="center" gap="$3" paddingVertical={14}>
         <Icon size={20} color={color} />
@@ -406,13 +413,13 @@ function ActionRow({ item, onPress }: ActionRowProps) {
 function PanelBody({ children }: { children: ReactNode }) {
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={PANEL_FLEX_STYLE}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
         flex={1}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={PANEL_CONTENT_STYLE}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <YStack gap="$3">{children}</YStack>
@@ -468,9 +475,7 @@ export function CustomerActionScreen({
     [customer, perms],
   );
 
-  const status =
-    customer.status ??
-    (customer.is_converted_to_deal ? "Converted to Deal" : "Open");
+  const status = resolveStatus(customer);
 
   const id = String(customer.id);
 

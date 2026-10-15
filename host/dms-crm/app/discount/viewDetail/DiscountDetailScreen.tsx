@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ScrollView } from "react-native";
 import { Spinner, Text, YStack } from "tamagui";
 import {
@@ -35,7 +35,13 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
 
-  // Handle approve discount
+  const openDecline = useCallback(() => setDeclineOpen(true), []);
+  const closeDecline = useCallback(() => setDeclineOpen(false), []);
+  const openAccept = useCallback(() => setAcceptOpen(true), []);
+  const closeAccept = useCallback(() => setAcceptOpen(false), []);
+  const openUpdate = useCallback(() => setUpdateOpen(true), []);
+  const closeUpdate = useCallback(() => setUpdateOpen(false), []);
+
   const handleApprove = async () => {
     try {
       await dispatch(approveDiscount(id)).unwrap();
@@ -128,12 +134,6 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
     );
   }
 
-  // Get status display value
-  const getStatusValue = () => {
-    return discount.status_display || discount.status;
-  };
-
-  // Check if actions are disabled based on current status
   const isActionDisabled = discount.status !== "pending";
 
   return (
@@ -168,27 +168,21 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
               { label: "Remarks", value: formatValue(discount.remarks) },
               {
                 label: "Status",
-                value: getStatusValue(),
+                value: discount.status_display || discount.status,
               },
             ]}
           />
 
           {!isActionDisabled && (
             <DiscountActionButtons
-              onDecline={() => {
-                setDeclineOpen(true);
-              }}
-              onUpdate={() => {
-                setUpdateOpen(true);
-              }}
-              onAccept={() => {
-                setAcceptOpen(true);
-              }}
+              onDecline={openDecline}
+              onUpdate={openUpdate}
+              onAccept={openAccept}
               loading={actionLoading}
             />
           )}
 
-          {isActionDisabled && discount.status !== "pending" && (
+          {isActionDisabled && (
             <YStack
               padding="$4"
               backgroundColor={
@@ -217,12 +211,8 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
         cancelText="Cancel"
         confirmText="Proceed"
         loading={actionLoading}
-        onCancel={() => {
-          setDeclineOpen(false);
-        }}
-        onConfirm={() => {
-          handleReject();
-        }}
+        onCancel={closeDecline}
+        onConfirm={handleReject}
       />
 
       <GenericModal
@@ -234,24 +224,16 @@ export function DiscountDetailScreen({ id }: DiscountDetailScreenProps) {
         cancelText="Cancel"
         confirmText="Proceed"
         loading={actionLoading}
-        onCancel={() => {
-          setAcceptOpen(false);
-        }}
-        onConfirm={() => {
-          handleApprove();
-        }}
+        onCancel={closeAccept}
+        onConfirm={handleApprove}
       />
 
       <UpdateDiscountDrawer
         open={updateOpen}
-        onClose={() => {
-          setUpdateOpen(false);
-        }}
+        onClose={closeUpdate}
         currentDiscount={formatValue(discount.requested_discount_amount)}
         maxAllowed={discount.max_allowed_amount}
-        onUpdate={(amount) => {
-          handleUpdateAmount(amount);
-        }}
+        onUpdate={handleUpdateAmount}
         loading={actionLoading}
       />
     </YStack>

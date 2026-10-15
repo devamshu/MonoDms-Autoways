@@ -52,7 +52,6 @@ export const SlideOpenProvider = ({ children }: { children: ReactNode }) => {
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
   const open = (component: ReactNode, title?: string) => {
-    console.log("slideAnim current value:", (slideAnim as any)._value);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setContent(component);
     setTitle(title);

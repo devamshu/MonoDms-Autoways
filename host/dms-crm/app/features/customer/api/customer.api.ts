@@ -296,15 +296,7 @@ export const customerApi = {
     data?: Customer;
     message?: string;
   }> {
-    console.log(
-      "[customerApi.createCustomer] REQUEST → POST /crm/inquiry/",
-      JSON.stringify(payload, null, 2),
-    );
     const response = await apiClient.post<Customer>("/crm/inquiry/", payload);
-    console.log(
-      "[customerApi.createCustomer] RESPONSE ←",
-      JSON.stringify(response, null, 2),
-    );
     if (response.success && response.data) {
       return { success: true, data: response.data };
     }

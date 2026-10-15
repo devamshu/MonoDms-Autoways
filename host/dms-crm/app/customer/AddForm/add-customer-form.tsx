@@ -8,7 +8,8 @@ import { StepIndicator } from "../../../components/custom/customer/stepIndicator
 import { GenericModal } from "../../../components/custom/model/genericModal";
 import { useSlideOpen } from "../../../../../components/auth/slideOpen";
 import { BitsImages } from "../../../constants/bits";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { shallowEqual } from "react-redux";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -46,6 +47,7 @@ import { useEmployees } from "../../../hooks/useEmployees";
 const successImage = BitsImages.success;
 const discardImage = BitsImages.discard;
 const confirmationImage = BitsImages.confirmation;
+const TOTAL_STEPS = 3;
 
 export function AddCustomerForm() {
   const { close } = useSlideOpen();
@@ -66,7 +68,7 @@ export function AddCustomerForm() {
     isSubmitting: state.crmCustomer.multiStepForm.isSubmitting,
     phoneEntries: state.crmCustomer.multiStepForm.phoneEntries,
     emailEntries: state.crmCustomer.multiStepForm.emailEntries,
-  }));
+  }), shallowEqual);
 
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
@@ -97,7 +99,7 @@ export function AddCustomerForm() {
     sourceTypesLoading: state.crmMaster.sourceTypesLoading,
     vehiclesLoading: state.crmMaster.vehiclesLoading,
     dmsVehiclesLoading: state.crmMaster.dmsVehiclesLoading,
-  }));
+  }), shallowEqual);
 
   const profile = useAppSelector((state) => state.crmProfile.profile);
   const isAdmin = useMemo(() => {
@@ -132,13 +134,16 @@ export function AddCustomerForm() {
     };
   }, [dispatch]);
 
-  const handleFetchDmsVehicles = (vehicleId: string) => {
-    dispatch(fetchDmsVehiclesForVehicle(vehicleId));
-  };
+  const handleFetchDmsVehicles = useCallback(
+    (vehicleId: string) => {
+      dispatch(fetchDmsVehiclesForVehicle(vehicleId));
+    },
+    [dispatch],
+  );
 
-  const handleClearDmsVehicles = () => {
+  const handleClearDmsVehicles = useCallback(() => {
     dispatch(resetDmsVehicles());
-  };
+  }, [dispatch]);
 
   const handleSubmit = async () => {
     try {
@@ -210,8 +215,6 @@ export function AddCustomerForm() {
     close();
   };
 
-  const totalSteps = 3;
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -221,7 +224,7 @@ export function AddCustomerForm() {
         <YStack flex={1}>
           <StepIndicator
             current={currentStep}
-            total={totalSteps}
+            total={TOTAL_STEPS}
             form={formData}
           />
           <XStack

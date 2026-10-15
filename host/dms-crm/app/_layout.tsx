@@ -12,7 +12,7 @@ import { ToastProvider } from "../components/custom/toast";
 import { useColorScheme } from "../hooks/use-color-scheme";
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -32,7 +32,6 @@ const ROUTE_FILTER_CONFIGS: Record<string, any> = {
 };
 
 function AppContent() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const pathname = usePathname();
   const {
@@ -48,6 +47,13 @@ function AppContent() {
 
   const filterConfig = ROUTE_FILTER_CONFIGS[pathname];
   const shouldShowFilter = !!filterConfig;
+  const handleFilterPress = useCallback(() => {
+    if (filterConfig) openFilters(filterConfig);
+  }, [filterConfig, openFilters]);
+  const handleNavigate = useCallback(
+    (path: string) => router.push(path as any),
+    [router],
+  );
   const isFullscreen = FULLSCREEN_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(r + "/"),
   );
@@ -57,7 +63,7 @@ function AppContent() {
       {!isFullscreen && (
         <Navbar
           showFilter={shouldShowFilter}
-          onFilterPress={() => filterConfig && openFilters(filterConfig)}
+          onFilterPress={handleFilterPress}
           activeFilterCount={activeFilterCount}
         />
       )}
@@ -94,7 +100,7 @@ function AppContent() {
 
       <Sidebar
         activeRoute={pathname}
-        onNavigate={(path) => router.push(path as any)}
+        onNavigate={handleNavigate}
       />
 
       {currentFilterConfig && (

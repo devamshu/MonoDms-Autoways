@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ActivityIndicator, Linking, TouchableOpacity } from "react-native";
 import { Download, Plus } from "lucide-react-native";
 import { Button, Text, XStack, YStack } from "tamagui";
@@ -52,6 +52,11 @@ function useResource<T>(inquiryId: string, key: CustomerResourceKey) {
   const dispatch = useAppDispatch();
   const state = useAppSelector((s) => s.crmCustomer.resources[key]);
 
+  const onRetry = useCallback(
+    () => dispatch(fetchInquiryResource({ inquiryId, key })),
+    [dispatch, inquiryId, key],
+  );
+
   useEffect(() => {
     if (!state.loaded) dispatch(fetchInquiryResource({ inquiryId, key }));
   }, [dispatch, inquiryId, key, state.loaded]);
@@ -61,7 +66,7 @@ function useResource<T>(inquiryId: string, key: CustomerResourceKey) {
     loaded: state.loaded,
     loading: state.loading,
     error: state.error,
-    onRetry: () => dispatch(fetchInquiryResource({ inquiryId, key })),
+    onRetry,
   };
 }
 
