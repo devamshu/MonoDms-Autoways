@@ -94,13 +94,6 @@ export default function HomeScreen() {
     };
   }, [modules]);
 
-  // Module IDs resolve asynchronously after fetchModules() completes, and
-  // TableMain's fetch effect only reacts to page/search/sort changes — not to
-  // onFetchData's identity — so the initial mount-time fetch (made while the
-  // ID was still undefined) is a no-op. Once the real ID is known, manually
-  // trigger the fetch that would otherwise never happen. This must not use a
-  // remounting `key` on TableMain: remounting wipes the component's internal
-  // manage-columns drawer state, which broke that UI for these three tables.
   useEffect(() => {
     if (moduleIds.inquiry) inquiryTableRef.current?.refresh();
   }, [moduleIds.inquiry]);
@@ -180,7 +173,6 @@ export default function HomeScreen() {
     [loadCcdPreview, moduleIds.psf],
   );
 
-  // ---------- Customer table ----------
   const handleCustomerPress = useCallback(
     (id: string) => open(<CustomerDetailScreen id={id} />, "Customer Details"),
     [open],
@@ -195,7 +187,6 @@ export default function HomeScreen() {
     [loadCustomers],
   );
 
-  // ---------- CCD shared press handler ----------
   const handleInquiryPress = useCallback(
     (id: string) => open(<CCDInquiryDetailScreen id={id} />, "Inquiry Details"),
     [open],
@@ -211,8 +202,6 @@ export default function HomeScreen() {
     [open],
   );
 
-  // Same column sets the full CCD screens use, so the dashboard previews stay
-  // in sync with /ccd.
   const inquiryColumns = useMemo(
     () => getCcdInquiryColumns(handleInquiryPress),
     [handleInquiryPress],
@@ -326,15 +315,9 @@ export default function HomeScreen() {
             showCard
           />
 
-          {/* Recent CCD Inquiry */}
           <SectionHeader
             title="Recent CCD Inquiry"
-            onViewAll={() =>
-              router.push({
-                pathname: "/ccd",
-                params: { tab: "inquiry" },
-              } as any)
-            }
+            onViewAll={() => router.push("/ccd-inquiry" as any)}
           />
           <TableMain
             ref={inquiryTableRef}
@@ -352,15 +335,9 @@ export default function HomeScreen() {
             showCard
           />
 
-          {/* Recent CCD Retail */}
           <SectionHeader
             title="Recent CCD Retail"
-            onViewAll={() =>
-              router.push({
-                pathname: "/ccd",
-                params: { tab: "retail" },
-              } as any)
-            }
+            onViewAll={() => router.push("/ccd-retail" as any)}
           />
           <TableMain
             ref={retailTableRef}
@@ -380,9 +357,7 @@ export default function HomeScreen() {
 
           <SectionHeader
             title="Recent CCD PSF"
-            onViewAll={() =>
-              router.push({ pathname: "/ccd", params: { tab: "psf" } } as any)
-            }
+            onViewAll={() => router.push("/ccd-psf" as any)}
           />
           <TableMain
             ref={psfTableRef}

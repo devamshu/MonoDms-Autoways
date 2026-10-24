@@ -46,6 +46,11 @@ export interface MasterLocation {
   stockyard: number;
 }
 
+export interface MasterDealer {
+  id: number;
+  name: string;
+}
+
 export interface MasterFilterOptions {
   vehicles: { label: string; value: string }[];
   variants: { label: string; value: string }[];

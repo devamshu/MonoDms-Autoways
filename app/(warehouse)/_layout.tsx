@@ -1,5 +1,6 @@
 import { persistor, store } from "@/host/dms-warehouse/app/features/store";
 import { getPartsFilterConfig } from "@/host/dms-warehouse/components/custom/filter/config/parts.config";
+import { getDealerVehicleFilterConfig } from "@/host/dms-warehouse/components/custom/filter/config/dealer-vehicle.config";
 import { getVehicleStockFilterConfig } from "@/host/dms-warehouse/components/custom/filter/config/vehicle.config";
 import {
   FilterProvider,
@@ -14,6 +15,7 @@ import {
   CarFront,
   House,
   LucideSettings,
+  Warehouse,
   Wrench,
 } from "lucide-react-native";
 import { useEffect, useRef } from "react";
@@ -24,6 +26,7 @@ import { WorkspaceTabsLayout } from "../../components/workspace/workspace-layout
 
 const ROUTE_FILTER_CONFIGS: Record<string, any> = {
   "/vehicle": getVehicleStockFilterConfig(),
+  "/branch-inventory": getDealerVehicleFilterConfig(),
   "/part": getPartsFilterConfig(),
 };
 
@@ -80,6 +83,11 @@ function AppContent() {
               name: "vehicle",
               title: "Vehicle",
               icon: (color: string) => <CarFront size={28} color={color} />,
+            },
+            {
+              name: "branch-inventory",
+              title: "Branch",
+              icon: (color: string) => <Warehouse size={28} color={color} />,
             },
             {
               name: "part",

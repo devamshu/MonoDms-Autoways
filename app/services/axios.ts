@@ -618,6 +618,31 @@ class ApiClient {
   }
 
   /**
+   * Absolute URL for a request path, with the configured base URL applied.
+   * Native file downloads (expo-file-system) bypass the axios client, so they
+   * need the fully-resolved URL.
+   */
+  getAbsoluteUrl(url: string): string {
+    return this.axiosInstance.getUri({ url });
+  }
+
+  /**
+   * Current access token, refreshed first if it is about to expire. Native
+   * download paths attach it manually since they skip the axios interceptors.
+   */
+  async getFreshAccessToken(): Promise<string | null> {
+    if (!this.access) return null;
+    if (this.isTokenExpired(this.accessTokenExpiry, TOKEN_REFRESH_BUFFER_MS)) {
+      try {
+        await this.refreshTokens();
+      } catch {
+        // Return whatever token we still hold; the request may still succeed.
+      }
+    }
+    return this.access;
+  }
+
+  /**
    * Get token status information (for debugging)
    */
   getTokenStatus() {

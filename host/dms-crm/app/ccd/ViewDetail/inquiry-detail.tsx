@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Card, ScrollView, Spinner, Text, XStack, YStack } from "tamagui";
 import { useAppDispatch, useAppSelector } from "../../../../../app/features/hooks";
 import { CCDResponse } from "../../../app/features/ccd/types";
@@ -28,20 +28,21 @@ function isConnected(res: CCDResponse): boolean {
   return res.call_status?.toLowerCase() === "connected";
 }
 
+const CALL_STATUS_VARIANTS: Record<
+  string,
+  "success" | "error" | "warning" | "info" | "default"
+> = {
+  connected: "success",
+  "not connected": "error",
+  "didnt answer": "warning",
+  "switched off": "error",
+  "number busy": "warning",
+};
+
 function getCallStatusVariant(
   status: string,
 ): "success" | "error" | "warning" | "info" | "default" {
-  const statusMap: Record<
-    string,
-    "success" | "error" | "warning" | "info" | "default"
-  > = {
-    connected: "success",
-    "not connected": "error",
-    "didnt answer": "warning",
-    "switched off": "error",
-    "number busy": "warning",
-  };
-  return statusMap[status?.toLowerCase()] ?? "default";
+  return CALL_STATUS_VARIANTS[status?.toLowerCase()] ?? "default";
 }
 
 function getInquiryTypeVariant(
@@ -71,8 +72,8 @@ function falseReasonLabel(res: CCDResponse): string | null {
 
 /* --------------------------- Response card --------------------------- */
 
-function ResponseCard({ res }: { res: CCDResponse }) {
-  const dotColor = useMemo(() => dotColorFor(res), [res]);
+const ResponseCard = memo(function ResponseCard({ res }: { res: CCDResponse }) {
+  const dotColor = dotColorFor(res);
   const reason = falseReasonLabel(res);
   const showQA = res.answers && res.answers.length > 0;
   const callStatusVariant = getCallStatusVariant(res.call_status);
@@ -165,7 +166,7 @@ function ResponseCard({ res }: { res: CCDResponse }) {
       )}
     </Card>
   );
-}
+});
 
 /* ------------------ Filter tabs ------------------ */
 

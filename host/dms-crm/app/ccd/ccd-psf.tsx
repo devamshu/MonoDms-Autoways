@@ -4,7 +4,6 @@ import { useAppDispatch, useAppSelector } from "../../../../app/features/hooks";
 import { useSlideOpen } from "../../../../components/auth/slideOpen";
 import {
   applyServerColumnMeta,
-  buildSearchPlaceholder,
   getCcdPsfColumns,
   transformPsfRows,
 } from "../../components/custom/columns/ccd.columns";

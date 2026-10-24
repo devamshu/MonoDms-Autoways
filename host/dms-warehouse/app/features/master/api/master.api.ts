@@ -2,6 +2,7 @@ import { getApiErrorMessage } from "../../../utils/extractError";
 import { dedupRequest, generateRequestKey } from "../../../utils/requestDedup";
 import {
     MasterColor,
+    MasterDealer,
     MasterLocation,
     MasterStockyard,
     MasterVariant,
@@ -106,6 +107,31 @@ export const masterApi = {
       return {
         success: false,
         message: getApiErrorMessage(response, "Failed to fetch stockyards"),
+      };
+    });
+  },
+
+  // Dealers
+  async fetchDealers(params?: { page?: number; page_size?: number }): Promise<{
+    success: boolean;
+    data?: { results: MasterDealer[]; next: string | null };
+    message?: string;
+  }> {
+    const requestKey = generateRequestKey("/master-dealer/", params);
+
+    return dedupRequest(requestKey, async () => {
+      const response = await apiClient.get<{
+        results: MasterDealer[];
+        next: string | null;
+      }>("/master-dealer/", { params });
+
+      if (response.success && response.data) {
+        return { success: true, data: response.data };
+      }
+
+      return {
+        success: false,
+        message: getApiErrorMessage(response, "Failed to fetch dealers"),
       };
     });
   },

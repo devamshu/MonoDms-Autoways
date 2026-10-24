@@ -3,6 +3,7 @@ import { getErrorMessage } from "../../../utils/extractError";
 import { masterApi } from "../api/master.api";
 import {
   MasterColor,
+  MasterDealer,
   MasterLocation,
   MasterStockyard,
   MasterVariant,
@@ -55,6 +56,23 @@ export const fetchMasterColors = createAsyncThunk<
       return { results: response.data.results, next: response.data.next, page };
     }
     return rejectWithValue(response.message || "Failed to fetch colors");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+export const fetchMasterDealers = createAsyncThunk<
+  { results: MasterDealer[]; next: string | null; page: number },
+  { page?: number } | void,
+  { rejectValue: string }
+>("warehouseMaster/fetchDealers", async (params, { rejectWithValue }) => {
+  try {
+    const page = params?.page ?? 1;
+    const response = await masterApi.fetchDealers({ page });
+    if (response.success && response.data) {
+      return { results: response.data.results, next: response.data.next, page };
+    }
+    return rejectWithValue(response.message || "Failed to fetch dealers");
   } catch (error) {
     return rejectWithValue(getErrorMessage(error));
   }

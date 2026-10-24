@@ -21,90 +21,98 @@ export const getVehicleStockColumns = (
   {
     id: "vehicle",
     label: "Vehicle",
-    accessor: "vehicle",
+    accessor: "dispatch",
     sortable: false,
     width: 160,
-    render: (value: any, row: any) => (
+    render: (_value: any, row: any) => (
       <Text
         color="$primary"
         fontWeight="500"
         numberOfLines={1}
         onPress={() => onPress(String(row.id))}
       >
-        {formatValue(value?.name)}
+        {formatValue(row.dispatch?.dms_vehicle?.vehicle?.name)}
       </Text>
     ),
   },
   {
     id: "chassis_no",
     label: "Chassis No",
-    accessor: "chassis_no",
+    accessor: "dispatch",
     sortable: true,
     width: 160,
-    render: (value: string) => (
+    sortKey: "dispatch__chassis_no",
+    render: (_value: any, row: any) => (
       <Text numberOfLines={1} fontSize="$xs" fontFamily="$mono">
-        {formatValue(value)}
+        {formatValue(row.dispatch?.chassis_no)}
       </Text>
     ),
   },
   {
     id: "variant",
     label: "Variant",
-    accessor: "variant",
+    accessor: "dispatch",
     sortable: false,
     width: 160,
-    render: (value: any) => (
-      <Text numberOfLines={1}>{formatValue(value?.name)}</Text>
+    render: (_value: any, row: any) => (
+      <Text numberOfLines={1}>
+        {formatValue(row.dispatch?.dms_vehicle?.variant?.name)}
+      </Text>
     ),
   },
   {
     id: "color",
     label: "Color",
-    accessor: "color",
+    accessor: "dispatch",
     sortable: false,
     width: 160,
-    render: (value: any) => (
-      <Text numberOfLines={1}>{formatValue(value?.name)}</Text>
+    render: (_value: any, row: any) => (
+      <Text numberOfLines={1}>
+        {formatValue(row.dispatch?.dms_vehicle?.color?.name)}
+      </Text>
     ),
   },
   {
     id: "manufacturing_year",
     label: "Year",
-    accessor: "manufacturing_year",
-    sortable: true,
+    accessor: "dispatch",
+    sortable: false,
     width: 120,
     align: "center",
-    render: (value: string) => (
-      <Text numberOfLines={1}>{formatValue(value)}</Text>
+    render: (_value: any, row: any) => (
+      <Text numberOfLines={1}>
+        {formatValue(row.dispatch?.dms_vehicle?.manufacturing_year)}
+      </Text>
     ),
   },
   {
     id: "engine_no",
     label: "Engine No",
-    accessor: "engine_no",
+    accessor: "dispatch",
     sortable: true,
     width: 160,
-    render: (value: string) => (
+    sortKey: "dispatch__engine_no",
+    render: (_value: any, row: any) => (
       <Text numberOfLines={1} fontSize="$xs" fontFamily="$mono">
-        {formatValue(value)}
+        {formatValue(row.dispatch?.engine_no)}
       </Text>
     ),
   },
   {
     id: "vehicle_type",
     label: "Type",
-    accessor: "vehicle_type",
-    sortable: true,
+    accessor: "dispatch",
+    sortable: false,
     width: 100,
     align: "center",
-    render: (value: string) => (
-      <Text numberOfLines={1}>{formatValue(value)}</Text>
+    render: (_value: any, row: any) => (
+      <Text numberOfLines={1}>{formatValue(row.dispatch?.type)}</Text>
     ),
   },
   {
-    id: "status_display",
+    id: "current_status",
     label: "Status",
-    accessor: "status_display",
+    accessor: "current_status",
     sortable: true,
     width: 120,
     align: "center",

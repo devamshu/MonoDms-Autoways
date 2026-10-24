@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { TouchableOpacity } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
 import { Column } from "./types";
@@ -11,6 +11,8 @@ interface TableRowProps {
 }
 
 function TableRowComponent({ row, columns, index, onPress }: TableRowProps) {
+  const handlePress = useCallback(() => onPress?.(row), [onPress, row]);
+
   const content = (
     <XStack
       gap="$2"
@@ -53,7 +55,7 @@ function TableRowComponent({ row, columns, index, onPress }: TableRowProps) {
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={() => onPress(row)} activeOpacity={0.7}>
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
         {content}
       </TouchableOpacity>
     );

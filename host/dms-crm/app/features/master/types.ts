@@ -21,6 +21,9 @@ export interface DmsVehicle {
   variant: DmsVehicleRef;
   color: DmsVehicleRef;
   manufacturing_year: string | null;
+  // Present on the flat /dms-vehicle/ list; used to prefill a quotation line
+  // price and to detect a price change (which needs an approver).
+  vehicle_price?: { dealer_price: number; customer_price: number | null }[] | null;
 }
 
 export interface MasterVariant {
@@ -34,6 +37,45 @@ export interface MasterColor {
   name: string;
   code: string;
   rank: number;
+}
+
+// Minimal shape the scoped dropdown endpoints and other simple masters return.
+export interface MasterOption {
+  id: number;
+  name: string;
+}
+
+export interface MasterPaymentMode {
+  id: number;
+  name: string;
+  rank?: number;
+}
+
+export interface MasterPaymentType {
+  id: number;
+  name: string;
+  rank?: number;
+}
+
+// /master-document-master/ — document types a sales document can be filed under.
+export interface MasterDocumentMaster {
+  id: number;
+  name: string;
+  is_required: boolean;
+}
+
+// /master-sparepart/ — accessory catalog for the Stock Sales tab.
+export interface MasterSparePart {
+  id: number;
+  name: string;
+  part_code: string;
+}
+
+export interface MasterFiscalYear {
+  id: number;
+  name?: string;
+  title?: string;
+  status?: boolean | number;
 }
 
 export interface MasterRelation {
@@ -59,6 +101,8 @@ export interface MasterInquiryKind {
   id: number;
   name: string;
   status: boolean;
+  // Used to detect a downgrade (needs a note). Present on the API response.
+  rank?: number;
 }
 
 export interface MasterSourceType {

@@ -15,6 +15,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
   runOnJS,
+  runOnUI,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -103,7 +104,10 @@ export default function Sidebar({
   const dispatch = useAppDispatch();
   const { profile, isLoading } = useAppSelector((state) => state.profile);
 
-  const [selectedPath, setSelectedPath] = useState(activeRoute || "/crm");
+  // The highlighted path comes straight from the router: the sidebar navigates
+  // by pushing routes, so `activeRoute` updates and there is no local copy to
+  // keep in sync (deriving beats a setState-in-effect).
+  const selectedPath = activeRoute || "/crm";
   const [expandedMenu, setExpandedMenu] = useState<string | null>("dashboard");
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -138,14 +142,6 @@ export default function Sidebar({
 
   const profileImageUri = getFullImageUrl(profile?.image);
 
-  useEffect(() => {
-    if (activeRoute) setSelectedPath(activeRoute);
-  }, [activeRoute]);
-
-  useEffect(() => {
-    translateX.value = withSpring(isOpen ? 0 : -SIDEBAR_WIDTH, SPRING);
-  }, [isOpen]);
-
   const pan = Gesture.Pan()
     .activeOffsetX([-10, 10])
     .onUpdate((e) => {
@@ -177,8 +173,18 @@ export default function Sidebar({
     pointerEvents: translateX.value <= -SIDEBAR_WIDTH ? "none" : "auto",
   }));
 
+  // Animate the panel when it is opened/closed from outside the gesture (e.g.
+  // the hamburger button). The write happens on the UI thread so the shared
+  // value is not mutated directly in the effect body.
+  useEffect(() => {
+    const target = isOpen ? 0 : -SIDEBAR_WIDTH;
+    runOnUI(() => {
+      "worklet";
+      translateX.value = withSpring(target, SPRING);
+    })();
+  }, [isOpen, translateX]);
+
   const handleNavigate = (path: string) => {
-    setSelectedPath(path);
     onNavigate?.(path);
     closeSidebar();
   };

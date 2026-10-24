@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ScrollView, Spinner, Text, YStack } from "tamagui";
 import { TableHeader } from "./tableHeader";
 import { TableRow } from "./tableRow";
@@ -15,10 +16,17 @@ interface TableProps {
   sortDirection?: "asc" | "desc";
 }
 
+const defaultKeyExtractor = (item: any) => item.id;
+
+const scrollContentStyle = {
+  paddingRight: 1,
+  minWidth: "100%" as const,
+};
+
 export function Table({
   columns,
   data,
-  keyExtractor = (item) => item.id,
+  keyExtractor = defaultKeyExtractor,
   isLoading = false,
   emptyMessage = "No data available",
   onRowPress,
@@ -26,12 +34,15 @@ export function Table({
   sortColumn,
   sortDirection,
 }: TableProps) {
-  // Yet To Optimize
-  const totalWidth = columns.reduce((sum, col) => {
-    const width =
-      typeof col.width === "number" ? col.width : Number(col.width) || 100;
-    return sum + width;
-  }, 0);
+  const totalWidth = useMemo(
+    () =>
+      columns.reduce((sum, col) => {
+        const width =
+          typeof col.width === "number" ? col.width : Number(col.width) || 100;
+        return sum + width;
+      }, 0),
+    [columns],
+  );
 
   const shouldDistribute = totalWidth < 800;
   const hasRows = !isLoading && data.length > 0;
@@ -42,10 +53,7 @@ export function Table({
         horizontal
         showsHorizontalScrollIndicator={false}
         bounces={false}
-        contentContainerStyle={{
-          paddingRight: 1,
-          minWidth: "100%", // Ensure minimum width is 100%
-        }}
+        contentContainerStyle={scrollContentStyle}
       >
         <YStack width="100%" minWidth={shouldDistribute ? "100%" : undefined}>
           <TableHeader

@@ -1,9 +1,9 @@
+import { Trash2 } from "lucide-react-native";
+import { Text, XStack, YStack } from "tamagui";
 import { EmailEntry, PhoneEntry } from "../../../app/features/customer/types";
 import { FieldErrors } from "../../../app/features/customer/validation";
 import { Dropdown } from "../../../components/custom/dropdown";
 import { AppInput } from "../../../components/custom/input";
-import { Trash2 } from "lucide-react-native";
-import { Text, XStack, YStack } from "tamagui";
 import { RequiredLabel } from "../requiredLabel";
 
 // ─── Options ──────────────────────────────────────────────────────────────────
@@ -216,7 +216,9 @@ export function CustomerStepperThree({
 
       {/* ── Email ─────────────────────────────────────────────────────────── */}
       <YStack gap="$2">
-        <RequiredLabel>Email</RequiredLabel>
+        <Text fontSize="$3" color="$color">
+          Email
+        </Text>
 
         {emailEntries.map((entry, index) => (
           <YStack key={entry.id} gap="$2">

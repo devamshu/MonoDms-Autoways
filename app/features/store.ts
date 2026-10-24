@@ -30,6 +30,7 @@ import warehouseMasterReducer from "../../host/dms-warehouse/app/features/master
 import warehouseOrdersReducer from "../../host/dms-warehouse/app/features/orders/store/orders.slice";
 import warehousePartStockReducer from "../../host/dms-warehouse/app/features/parts/store/parts.slice";
 import warehouseProfileReducer from "../../host/dms-warehouse/app/features/profile/store/profile.slice";
+import warehouseDealerVehicleReducer from "../../host/dms-warehouse/app/features/dealer-vehicle/store/dealer-vehicle.slice";
 import warehouseVehicleStockReducer from "../../host/dms-warehouse/app/features/vehicle/store/vehicle.slice";
 
 const persistConfig = {
@@ -57,6 +58,7 @@ export type RootState = {
   crmCcd: ReturnType<typeof crmCcdReducer>;
   warehouseProfile: ReturnType<typeof warehouseProfileReducer>;
   warehouseVehicleStock: ReturnType<typeof warehouseVehicleStockReducer>;
+  warehouseDealerVehicle: ReturnType<typeof warehouseDealerVehicleReducer>;
   warehouseMaster: ReturnType<typeof warehouseMasterReducer>;
   warehousePartStock: ReturnType<typeof warehousePartStockReducer>;
   warehouseOrders: ReturnType<typeof warehouseOrdersReducer>;
@@ -89,6 +91,7 @@ export type RootState = {
     | ReturnType<typeof managementMasterReducer>;
   users: ReturnType<typeof managementUsersReducer> | undefined;
   vehicleStock: ReturnType<typeof warehouseVehicleStockReducer> | undefined;
+  dealerVehicle: ReturnType<typeof warehouseDealerVehicleReducer> | undefined;
   partStock: ReturnType<typeof warehousePartStockReducer> | undefined;
   orders: ReturnType<typeof warehouseOrdersReducer> | undefined;
 };
@@ -116,6 +119,10 @@ const rootReducer = (
   );
   const warehouseVehicleStockState = warehouseVehicleStockReducer(
     state?.warehouseVehicleStock,
+    action,
+  );
+  const warehouseDealerVehicleState = warehouseDealerVehicleReducer(
+    state?.warehouseDealerVehicle,
     action,
   );
   const warehouseMasterState = warehouseMasterReducer(
@@ -218,6 +225,11 @@ const rootReducer = (
       ? warehouseVehicleStockReducer(state?.warehouseVehicleStock, action)
       : undefined;
 
+  const dealerVehicleState =
+    activeWorkspace === "warehouse"
+      ? warehouseDealerVehicleReducer(state?.warehouseDealerVehicle, action)
+      : undefined;
+
   const partStockState =
     activeWorkspace === "warehouse"
       ? warehousePartStockReducer(state?.warehousePartStock, action)
@@ -240,6 +252,7 @@ const rootReducer = (
     crmCcd: crmCcdState,
     warehouseProfile: warehouseProfileState,
     warehouseVehicleStock: warehouseVehicleStockState,
+    warehouseDealerVehicle: warehouseDealerVehicleState,
     warehouseMaster: warehouseMasterState,
     warehousePartStock: warehousePartStockState,
     warehouseOrders: warehouseOrdersState,
@@ -261,6 +274,7 @@ const rootReducer = (
     master: masterState,
     users: usersState,
     vehicleStock: vehicleStockState,
+    dealerVehicle: dealerVehicleState,
     partStock: partStockState,
     orders: ordersState,
   };

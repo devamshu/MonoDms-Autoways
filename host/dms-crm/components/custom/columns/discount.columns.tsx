@@ -1,28 +1,30 @@
 import { formatValue } from "../../../app/utils/validator/emptyFieldValidator";
 import { Column } from "../../../components/custom/table/types";
 import { Text } from "tamagui";
+import { Badge, getBadgeVariant } from "../badge";
+import { formatNpr } from "../../../app/utils/format/format";
 
 export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
   {
-    id: "id",
+    id: "sn",
     label: "SN",
     accessor: "id",
-    sortable: true,
+    sortable: false,
     width: 60,
     align: "center",
-    render: (value: string) => (
+    render: (_value: any, _row: any, index?: number) => (
       <Text fontWeight="500" numberOfLines={1}>
-        {formatValue(value)}
+        {(index ?? 0) + 1}
       </Text>
     ),
   },
   {
-    id: "inquiry",
+    id: "inquiry_no",
     label: "Inquiry No.",
-    accessor: "inquiry",
+    accessor: "inquiry_no",
     sortable: true,
-    width: 100,
-    render: (value: number | null, row: any) => (
+    width: 120,
+    render: (value: string | null, row: any) => (
       <Text
         color="$primary"
         fontWeight="500"
@@ -36,6 +38,30 @@ export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
     ),
   },
   {
+    id: "inquiry_name",
+    label: "Inquiry Name",
+    accessor: "inquiry_name",
+    sortable: true,
+    width: 140,
+    render: (value: string | null) => (
+      <Text numberOfLines={1} color="$color">
+        {formatValue(value)}
+      </Text>
+    ),
+  },
+  {
+    id: "assigned_to_name",
+    label: "Assigned To",
+    accessor: "assigned_to_name",
+    sortable: false,
+    width: 130,
+    render: (value: string | null) => (
+      <Text numberOfLines={1} color="$color">
+        {formatValue(value)}
+      </Text>
+    ),
+  },
+  {
     id: "requested_discount_amount",
     label: "Discount Request",
     accessor: "requested_discount_amount",
@@ -43,7 +69,7 @@ export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
     width: 140,
     render: (value: number | null) => (
       <Text numberOfLines={1} color="$color">
-        {formatValue(value)}
+        {formatNpr(value)}
       </Text>
     ),
   },
@@ -55,7 +81,7 @@ export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
     width: 120,
     render: (value: number | null) => (
       <Text numberOfLines={1} color="$color">
-        {formatValue(value)}
+        {formatNpr(value)}
       </Text>
     ),
   },
@@ -84,11 +110,26 @@ export const getDiscountColumns = (onPress: (id: string) => void): Column[] => [
     ),
   },
   {
-    id: "is_approved",
+    id: "status",
     label: "Status",
-    accessor: "is_approved",
+    accessor: "status_display",
     sortable: true,
-    width: 90,
+    width: 120,
+    render: (value: string | null) =>
+      value ? (
+        <Badge label={value} size="sm" variant={getBadgeVariant(value)} />
+      ) : (
+        <Text numberOfLines={1} color="$color">
+          {formatValue(value)}
+        </Text>
+      ),
+  },
+  {
+    id: "requested_by_name",
+    label: "Requested By",
+    accessor: "requested_by_name",
+    sortable: false,
+    width: 130,
     render: (value: string | null) => (
       <Text numberOfLines={1} color="$color">
         {formatValue(value)}

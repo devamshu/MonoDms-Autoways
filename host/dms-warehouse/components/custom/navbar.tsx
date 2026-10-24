@@ -6,11 +6,12 @@ import { Text, useTheme, XStack } from "tamagui";
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/playground": "Customer",
-  "/vehicle": "Vehicles",
+  "/vehicle": "Logistics Vehicle Inventory",
   "/part": "Parts",
   "/orders": "Dealer Orders Dispatch",
+  "/branch-inventory": "Branch Logistics Inventory",
   "/setting": "Settings",
-  "/profile/personalInformation": "Personal ]",
+  "/profile/personalInformation": "Personal",
   "/profile/loginAndSecurity": "Login & Security",
   "/parts/location-parts": "Location Parts",
 };

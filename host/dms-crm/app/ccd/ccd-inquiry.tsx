@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { Text, YStack } from "tamagui";
 import { useAppDispatch, useAppSelector } from "../../../../app/features/hooks";
 import { useSlideOpen } from "../../../../components/auth/slideOpen";
@@ -24,18 +24,10 @@ export function CCDInquiryScreen({ moduleId }: CCDInquiryScreenProps) {
     (state) => state.crmCcd,
   );
   const { open } = useSlideOpen();
-  const isOpeningRef = useRef(false);
 
   const handleOpenDetail = useCallback(
     (id: string) => {
-      if (isOpeningRef.current) return;
-      isOpeningRef.current = true;
       open(<CCDInquiryDetailScreen id={id} />, "Inquiry Details");
-
-      // Reset after a short delay
-      setTimeout(() => {
-        isOpeningRef.current = false;
-      }, 300);
     },
     [open],
   );
@@ -83,16 +75,8 @@ export function CCDInquiryScreen({ moduleId }: CCDInquiryScreenProps) {
               </Text>
             );
           } else if (col.field === "inq_no") {
-            renderFunction = (value: any, row: any) => (
-              <Text
-                numberOfLines={1}
-                color="$primary"
-                fontWeight="500"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleOpenDetail(row.id.toString());
-                }}
-              >
+            renderFunction = (value: any) => (
+              <Text numberOfLines={1} color="$primary" fontWeight="500">
                 {formatValue(value)}
               </Text>
             );
@@ -119,10 +103,10 @@ export function CCDInquiryScreen({ moduleId }: CCDInquiryScreenProps) {
     }
 
     return applyServerColumnMeta(
-      getCcdInquiryColumns(handleOpenDetail),
+      getCcdInquiryColumns(),
       moduleSettings?.table_columns,
     );
-  }, [moduleSettings, handleOpenDetail]);
+  }, [moduleSettings]);
 
   const defaultOrdering = moduleSettings?.metadata?.default_sort;
 

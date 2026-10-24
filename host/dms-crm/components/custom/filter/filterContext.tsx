@@ -152,11 +152,15 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
   }, [currentFilterConfig, saveFilters]);
 
   const clearAllFilters = useCallback(async () => {
-    if (!currentFilterConfig) return;
-
+    // Always drop the in-memory filters on navigation: a filter applied on one
+    // route must not leak into another that shares the same endpoint (Inquiry
+    // and Customers both query /crm/inquiry/). Saved filters stay in storage,
+    // so reopening the filter reloads them.
     setActiveFilters({});
     setActiveFilterCount(0);
-    await saveFilters(currentFilterConfig, {});
+    if (currentFilterConfig) {
+      await saveFilters(currentFilterConfig, {});
+    }
   }, [currentFilterConfig, saveFilters]);
 
   return (

@@ -5,6 +5,8 @@ import {
   Customer,
   CustomerFormData,
   CustomerListParams,
+  CustomerResourceKey,
+  CustomerResourceState,
   EmailEntry,
   InquiryDetail,
   MultiStepFormState,
@@ -15,6 +17,7 @@ import {
   fetchCustomerById,
   fetchCustomers,
   fetchInquiryDetail, // Add this import
+  fetchInquiryResource,
   submitMultiStepForm,
 } from "./customer.thunks";
 
@@ -29,22 +32,39 @@ interface CustomerState {
   error: string | null;
   // Last params used to fetch the list, so mutations can refetch the same view.
   listParams: CustomerListParams | null;
+  // Read-only inquiry sub-lists for the action drawer.
+  resources: Record<CustomerResourceKey, CustomerResourceState<any>>;
 }
+
+// Fresh object each call — never share item arrays between renders/slices.
+const createInitialResources = (): Record<
+  CustomerResourceKey,
+  CustomerResourceState<any>
+> => ({
+  activities: { items: [], loading: false, error: null, loaded: false },
+  notes: { items: [], loading: false, error: null, loaded: false },
+  statuses: { items: [], loading: false, error: null, loaded: false },
+  testDrives: { items: [], loading: false, error: null, loaded: false },
+  quotations: { items: [], loading: false, error: null, loaded: false },
+  documents: { items: [], loading: false, error: null, loaded: false },
+  payments: { items: [], loading: false, error: null, loaded: false },
+  discounts: { items: [], loading: false, error: null, loaded: false },
+  salesDocuments: { items: [], loading: false, error: null, loaded: false },
+  salesAccessories: { items: [], loading: false, error: null, loaded: false },
+  salesRecord: { items: [], loading: false, error: null, loaded: false },
+  salesAssignment: { items: [], loading: false, error: null, loaded: false },
+});
 
 // NEW: Multi-step form state
 const initialFormState: MultiStepFormState = {
   currentStep: 1,
   formData: {
-    first_name: "",
-    middle_name: "",
-    last_name: "",
+    name: "",
     inquiry_kind: "",
-    gender: "",
     address: "",
     source_type: "",
     remarks: "",
     phone: "",
-    country: "",
     city: "",
     phone_category: "mobile",
     country_code: "+977",
@@ -53,6 +73,7 @@ const initialFormState: MultiStepFormState = {
     pref_vehicle: "",
     pref_variant: "",
     pref_color: "",
+    assigned_to: "",
     existing_vehicle_name: "",
     our_vehicle_name: "",
     existing_vehicle_count: "",
@@ -91,6 +112,7 @@ const initialState: CustomerState & { multiStepForm: MultiStepFormState } = {
   inquiryDetailLoading: false,
   listParams: null,
   multiStepForm: initialFormState,
+  resources: createInitialResources(),
 };
 
 // Type-safe payload interfaces
@@ -253,6 +275,11 @@ const customerSlice = createSlice({
     clearInquiryDetail: (state) => {
       state.currentInquiryDetail = null;
     },
+
+    // Drop the drawer sub-lists, e.g. when switching to a different customer.
+    clearCustomerResources: (state) => {
+      state.resources = createInitialResources();
+    },
   },
   extraReducers: (builder) => {
     // Existing customer reducers
@@ -299,6 +326,29 @@ const customerSlice = createSlice({
         state.inquiryDetailLoading = false;
         state.error = action.payload || "Failed to fetch inquiry details";
       })
+      // Read-only drawer sub-lists
+      .addCase(fetchInquiryResource.pending, (state, action) => {
+        const resource = state.resources[action.meta.arg.key];
+        if (resource) {
+          resource.loading = true;
+          resource.error = null;
+        }
+      })
+      .addCase(fetchInquiryResource.fulfilled, (state, action) => {
+        const resource = state.resources[action.payload.key];
+        if (resource) {
+          resource.loading = false;
+          resource.items = action.payload.items;
+          resource.loaded = true;
+        }
+      })
+      .addCase(fetchInquiryResource.rejected, (state, action) => {
+        const resource = state.resources[action.meta.arg.key];
+        if (resource) {
+          resource.loading = false;
+          resource.error = action.payload || "Failed to load";
+        }
+      })
       // Form submission handling
       .addCase(submitMultiStepForm.pending, (state) => {
         state.multiStepForm.isSubmitting = true;
@@ -334,6 +384,7 @@ export const {
   resetMultiStepForm,
   clearFormError,
   clearInquiryDetail, // Export this
+  clearCustomerResources,
 } = customerSlice.actions;
 
 export default customerSlice.reducer;

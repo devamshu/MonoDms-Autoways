@@ -1,10 +1,13 @@
 export interface Discount {
   id: number;
   inquiry: number | null;
+  inquiry_no: string | null;
+  inquiry_name: string | null;
+  assigned_to_name: string | null;
   requested_discount_amount: number | null;
   given_discount_amount: number | null;
-  status: "pending" | "approved" | "rejected" | string; // Updated from is_approved
-  status_display: string; // Display text for status
+  status: "pending" | "approved" | "rejected" | string;
+  status_display: string;
   policy_name: string | null;
   vehicle_name: string | null;
   discount_designations: any[];
@@ -14,7 +17,7 @@ export interface Discount {
   requested_by_name: string | null;
   approved_by_name: string | null;
   rejected_by_name: string | null;
-  max_allowed_amount?: number | null; // Optional if not in all responses
+  max_allowed_amount?: number | null;
   intended_for?: string | null;
 }
 

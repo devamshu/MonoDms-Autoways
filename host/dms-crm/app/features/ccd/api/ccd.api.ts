@@ -9,6 +9,9 @@ import {
   CCDResponseDetail,
   CCDResponseListParams,
   CCDResponsePayload,
+  Followup,
+  FollowupListParams,
+  FollowupPayload,
   JobCardDetail,
   SalesDetail,
 } from "../types";
@@ -250,6 +253,53 @@ export const ccdApi = {
     return {
       success: false,
       message: getApiErrorMessage(response, "Failed to fetch customers"),
+    };
+  },
+
+  async fetchFollowups(params?: FollowupListParams): Promise<{
+    success: boolean;
+    data?: {
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: Followup[];
+    };
+    message?: string;
+  }> {
+    const response = await apiClient.get<{
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: Followup[];
+    }>("/crm/followup/", { params });
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to fetch followups"),
+    };
+  },
+
+  async createFollowup(payload: FollowupPayload): Promise<{
+    success: boolean;
+    data?: Followup;
+    message?: string;
+  }> {
+    const response = await apiClient.post<Followup>(
+      "/crm/followup/",
+      payload,
+    );
+
+    if (response.success && response.data) {
+      return { success: true, data: response.data };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to create followup"),
     };
   },
 };

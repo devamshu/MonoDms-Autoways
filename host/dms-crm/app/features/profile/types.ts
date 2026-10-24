@@ -1,3 +1,8 @@
+export interface UserGroup {
+  id: number;
+  name: string;
+}
+
 export interface UserProfile {
   id: number;
   username: string;
@@ -7,6 +12,13 @@ export interface UserProfile {
   email: string;
   phone: string | null;
   image: string | null;
+  employee_id?: number | null;
+  is_superuser?: boolean;
+  groups?: UserGroup[];
+  authorities?: string[];
+  // Full Django codenames (e.g. "change_inquiry") grouped by model, as returned
+  // by GET /users/auth/me/. Same source the web permission engine reads.
+  permissions?: Record<string, string[]>;
 }
 
 export interface ChangePassword {

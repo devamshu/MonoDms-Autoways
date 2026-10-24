@@ -86,7 +86,7 @@ export default function VehicleScreen() {
           showCard
         />
       </ScreenScrollView>
-      <AddFormButton component={<AddVehicleForm />} title="Add Vehicle" />
+      {/* <AddFormButton component={<AddVehicleForm />} title="Add Vehicle" /> */}
     </YStack>
   );
 }

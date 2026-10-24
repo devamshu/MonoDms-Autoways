@@ -30,13 +30,15 @@ export function VehicleStockDetailScreen({
     );
   }
 
+  const dispatch = vehicle.dispatch;
+  const dmsVehicle = dispatch?.dms_vehicle;
   const imageSource = DefaultImages.carPlaceholder;
 
   return (
     <ScrollView flex={1} backgroundColor="$background">
       <YStack padding="$4" gap="$4">
         <Text fontSize="$6" fontWeight="600" color="$color">
-          {formatValue(vehicle.vehicle?.name)}
+          {formatValue(dmsVehicle?.vehicle?.name)}
         </Text>
 
         <Card
@@ -58,18 +60,22 @@ export function VehicleStockDetailScreen({
         <VehicleDetailCard
           title="Vehicle Information"
           rows={[
-            { label: "Variant", value: formatValue(vehicle.variant?.name) },
-            { label: "Year", value: formatValue(vehicle.manufacturing_year) },
-            { label: "Color", value: formatValue(vehicle.color?.name) },
-            { label: "Type", value: formatValue(vehicle.vehicle_type) },
+            { label: "Variant", value: formatValue(dmsVehicle?.variant?.name) },
+            {
+              label: "Year",
+              value: formatValue(dmsVehicle?.manufacturing_year),
+            },
+            { label: "Color", value: formatValue(dmsVehicle?.color?.name) },
+            { label: "Type", value: formatValue(dispatch?.type) },
+            { label: "Mode", value: formatValue(dispatch?.vehicle_mode) },
             {
               label: "Chassis No.",
-              value: formatValue(vehicle.chassis_no),
+              value: formatValue(dispatch?.chassis_no),
               copyable: true,
             },
             {
               label: "Engine No.",
-              value: formatValue(vehicle.engine_no),
+              value: formatValue(dispatch?.engine_no),
               copyable: true,
             },
           ]}
@@ -79,19 +85,28 @@ export function VehicleStockDetailScreen({
           title="Inventory Information"
           rows={[
             {
-              label: "Warehouse ",
-              value: formatValue(vehicle.current_location),
+              label: "Warehouse",
+              value: formatValue(dispatch?.current_location),
             },
-
             {
               label: "Current Status",
-              value: <StatusBadge status={vehicle.status || "UNKNOWN"} />,
+              value: (
+                <StatusBadge status={vehicle.current_status || "UNKNOWN"} />
+              ),
             },
             {
-              label: "Added Date",
-              value: vehicle.receiver_stockyard_received_date
+              label: "Damage",
+              value: vehicle.is_damage ? "Yes" : "No",
+            },
+            {
+              label: "Invoice No.",
+              value: formatValue(dispatch?.invoice_no),
+            },
+            {
+              label: "Received Date",
+              value: dispatch?.receiver_stockyard_received_date
                 ? new Date(
-                    vehicle.receiver_stockyard_received_date,
+                    dispatch.receiver_stockyard_received_date,
                   ).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "short",

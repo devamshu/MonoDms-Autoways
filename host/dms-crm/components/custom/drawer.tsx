@@ -24,6 +24,8 @@ interface BottomDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   headerTitle?: string;
+  // Optional leading slot (e.g. a back button when the drawer hosts sub-views).
+  headerLeftContent?: ReactNode;
   headerRightContent?: ReactNode;
   children: ReactNode;
   stickyBottomContent?: ReactNode;
@@ -61,6 +63,7 @@ export function BottomDrawer({
   open,
   onOpenChange,
   headerTitle,
+  headerLeftContent,
   headerRightContent,
   children,
   stickyBottomContent,
@@ -130,13 +133,16 @@ export function BottomDrawer({
           borderBottomWidth={1}
           borderBottomColor={theme.outline?.val}
         >
-          <YStack flex={1}>
-            {headerTitle && (
-              <Text fontSize="$6" fontWeight="600" color="$color">
-                {headerTitle}
-              </Text>
-            )}
-          </YStack>
+          <XStack alignItems="center" gap="$2" flex={1}>
+            {headerLeftContent}
+            <YStack flex={1}>
+              {headerTitle && (
+                <Text fontSize="$6" fontWeight="600" color="$color" numberOfLines={1}>
+                  {headerTitle}
+                </Text>
+              )}
+            </YStack>
+          </XStack>
 
           <XStack gap="$2" alignItems="center">
             {headerRightContent}

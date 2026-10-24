@@ -1,4 +1,5 @@
 import { ArrowUpDown } from "lucide-react-native";
+import { memo } from "react";
 import { Button, Text, useTheme, XStack } from "tamagui";
 import { Column } from "./types";
 
@@ -9,7 +10,7 @@ interface TableHeaderProps {
   onSort?: (columnId: string, direction: "asc" | "desc") => void;
 }
 
-export function TableHeader({
+function TableHeaderComponent({
   columns,
   sortColumn,
   sortDirection,
@@ -68,3 +69,5 @@ export function TableHeader({
     </XStack>
   );
 }
+
+export const TableHeader = memo(TableHeaderComponent);

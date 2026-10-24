@@ -16,6 +16,14 @@ type EditingField = "name" | "phone" | "email" | null;
 
 const RESEND_COOLDOWN = 50;
 
+const parseName = (fullName: string) => {
+  const parts = fullName.trim().split(/\s+/);
+  const firstName = parts[0] || "";
+  const middleName = parts.length > 2 ? parts.slice(1, -1).join(" ") : "";
+  const lastName = parts.length > 1 ? parts[parts.length - 1] : "";
+  return { firstName, middleName, lastName };
+};
+
 export default function PersonalInformationScreen() {
   const dispatch = useAppDispatch();
   const { profile, isLoading } = useAppSelector((state) => state.crmProfile);
@@ -40,15 +48,6 @@ export default function PersonalInformationScreen() {
   const [isUpdating, setIsUpdating] = useState(false);
   const otpInputs = useRef<any[]>([]);
   const isVerifying = useRef(false);
-
-  // Helper function to parse name into first, middle, last
-  const parseName = (fullName: string) => {
-    const parts = fullName.trim().split(/\s+/);
-    const firstName = parts[0] || "";
-    const middleName = parts.length > 2 ? parts.slice(1, -1).join(" ") : "";
-    const lastName = parts.length > 1 ? parts[parts.length - 1] : "";
-    return { firstName, middleName, lastName };
-  };
 
   // Helper function to format name from profile - wrapped in useCallback
   const formatFullName = useCallback(() => {
