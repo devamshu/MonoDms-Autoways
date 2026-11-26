@@ -15,6 +15,8 @@ import PersonalInformationScreen from "@/host/dms-crm/app/profile/personal-infor
 import { AppRoutes } from "@/host/dms-crm/app/utils/navigation";
 import { ProfileButton } from "@/host/dms-crm/components/custom/buttons/profileBtn";
 
+import { LEGAL_LINKS } from "@/constants/legal";
+import { openLegalLink } from "@/app/utils/legal";
 import { clearSelectedApp } from "@/app/utils/app-selection";
 import { AppRoutes as RootAppRoutes } from "@/app/utils/navigation";
 import { GenericModal } from "@/host/dms-crm/components/custom/model/genericModal";
@@ -22,7 +24,7 @@ import { ProfileHeader } from "@/host/dms-crm/components/custom/profile/profileH
 import { toast } from "@/host/dms-crm/components/custom/toast";
 import { Images } from "@/host/dms-crm/constants/image";
 import { router } from "expo-router";
-import { Bell, Grid2x2, Lock, LogOut, UserCircle } from "lucide-react-native";
+import { Bell, Grid2x2, Lock, LogOut, UserCircle, FileText, ShieldCheck } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { Text, useTheme, YStack } from "tamagui";
 import { getImageUrl } from "../utils/image";
@@ -132,6 +134,24 @@ export default function SettingsScreen() {
           icon={<Grid2x2 size={22} color={theme?.secondaryText?.val} />}
           text="Switch App"
           onPress={handleSwitchApp}
+        />
+
+        <YStack paddingHorizontal="$5" paddingTop="$4" paddingBottom="$3">
+          <Text fontSize={17} fontWeight="700" color="$descriptionText">
+            Legal
+          </Text>
+        </YStack>
+
+        <ProfileButton
+          icon={<ShieldCheck size={22} color={theme?.secondaryText?.val} />}
+          text="Privacy Policy"
+          onPress={() => openLegalLink(LEGAL_LINKS.privacyPolicy)}
+        />
+
+        <ProfileButton
+          icon={<FileText size={22} color={theme?.secondaryText?.val} />}
+          text="Terms & Conditions"
+          onPress={() => openLegalLink(LEGAL_LINKS.termsAndConditions)}
         />
 
         <ProfileButton
