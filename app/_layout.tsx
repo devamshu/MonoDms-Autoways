@@ -17,6 +17,15 @@ import { persistor, store } from './features/store';
 import { setApiAuthFailureHandler } from './services/axios';
 import { AppRoutes, navigate } from './utils/navigation';
 
+// Release builds should not print the app's diagnostic chatter (token refresh,
+// API errors) to the device log. console.error/warn stay, so real failures
+// still surface to crash tooling.
+if (!__DEV__) {
+  console.log = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+}
+
 export const unstable_settings = {
   initialRouteName: "index",
 };

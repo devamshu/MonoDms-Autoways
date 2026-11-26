@@ -2,7 +2,7 @@
 import { ReactNode } from "react";
 import { Text, XStack, useTheme } from "tamagui";
 
-interface BadgeProps {
+export interface BadgeProps {
   label?: string;
   children?: ReactNode;
   variant?: "success" | "error" | "warning" | "info" | "default";

@@ -22,7 +22,9 @@ import { toast } from "@/host/dms-warehouse/components/custom/toast";
 import { clearSelectedApp } from "@/app/utils/app-selection";
 import { AppRoutes as RootAppRoutes } from "@/app/utils/navigation";
 import { router } from "expo-router";
-import { Bell, Grid2x2, Lock, LogOut, UserCircle } from "lucide-react-native";
+import { LEGAL_LINKS } from "@/constants/legal";
+import { openLegalLink } from "@/app/utils/legal";
+import { Bell, Grid2x2, Lock, LogOut, UserCircle, FileText, ShieldCheck } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Text, useTheme, YStack } from "tamagui";
 import { apiClient } from "../services/axios";
@@ -157,6 +159,24 @@ export default function SettingsScreen() {
           icon={<Grid2x2 size={22} color={theme?.secondaryText?.val} />}
           label="Switch App"
           onPress={handleSwitchApp}
+        />
+
+        <YStack paddingHorizontal="$5" paddingTop="$4" paddingBottom="$3">
+          <Text fontSize={17} fontWeight="700" color="$descriptionText">
+            Legal
+          </Text>
+        </YStack>
+
+        <SettingsItem
+          icon={<ShieldCheck size={22} color={theme?.secondaryText?.val} />}
+          label="Privacy Policy"
+          onPress={() => openLegalLink(LEGAL_LINKS.privacyPolicy)}
+        />
+
+        <SettingsItem
+          icon={<FileText size={22} color={theme?.secondaryText?.val} />}
+          label="Terms & Conditions"
+          onPress={() => openLegalLink(LEGAL_LINKS.termsAndConditions)}
         />
 
         <SettingsItem

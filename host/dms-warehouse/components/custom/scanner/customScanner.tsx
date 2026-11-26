@@ -91,7 +91,7 @@ const QRScanner: React.FC<QRScannerProps> = ({
     <View style={styles.container}>
       {isActive && (
         <CameraView
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           facing="back"
           enableTorch={torch}
           barcodeScannerSettings={{
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flex: 1,
   },
   scanBoxContainer: {

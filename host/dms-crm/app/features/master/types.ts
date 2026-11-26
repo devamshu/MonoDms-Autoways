@@ -49,6 +49,8 @@ export interface MasterPaymentMode {
   id: number;
   name: string;
   rank?: number;
+  // Minutes until a new enquiry of this kind's first follow-up is due.
+  first_followup_offset_minutes?: number | null;
 }
 
 export interface MasterPaymentType {

@@ -68,7 +68,7 @@ export function WorkspaceTabsLayout({ tabs }: WorkspaceTabsLayoutProps) {
           name={tab.name}
           options={{
             title: tab.title,
-            tabBarIcon: ({ color }) => tab.icon(color),
+            tabBarIcon: ({ color }) => tab.icon(color as string),
           }}
         />
       ))}

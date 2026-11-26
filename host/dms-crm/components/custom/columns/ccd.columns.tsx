@@ -70,7 +70,11 @@ export const transformPsfRows = (rows: any[]) =>
     formatted_closed_date: fmtDate(item.closed_date),
   }));
 
-export const getCcdInquiryColumns = (): Column[] => [
+// `onPress` is optional: the CCD inquiry table opens details from a row tap, the
+// dashboard preview opens them from the inquiry number.
+export const getCcdInquiryColumns = (
+  onPress?: (id: string) => void,
+): Column[] => [
   snColumn,
   {
     id: "inq_no",
@@ -78,8 +82,20 @@ export const getCcdInquiryColumns = (): Column[] => [
     accessor: "inq_no",
     width: 120,
     sortable: true,
-    render: (value: string | null) => (
-      <Text numberOfLines={1} color="$primary" fontWeight="500">
+    render: (value: string | null, row: any) => (
+      <Text
+        numberOfLines={1}
+        color="$primary"
+        fontWeight="500"
+        onPress={
+          onPress
+            ? (e) => {
+                e.stopPropagation();
+                onPress(row.id.toString());
+              }
+            : undefined
+        }
+      >
         {formatValue(value)}
       </Text>
     ),
@@ -194,89 +210,6 @@ export const getCcdRetailColumns = (
     sortKey: "email",
     width: 180,
     sortable: true,
-    render: textCell,
-  },
-];
-
-export const transformFollowupRows = (rows: any[]) =>
-  (rows ?? []).map((item, index) => ({
-    ...item,
-    sn: index + 1,
-    formatted_followup_date: fmtDate(item.followup_date),
-    formatted_next_followup_date: fmtDate(item.next_followup_date),
-    formatted_time: item.time
-      ? item.time.length > 8
-        ? item.time.slice(0, 8)
-        : item.time
-      : null,
-  }));
-
-export const getFollowupColumns = (): Column[] => [
-  snColumn,
-  {
-    id: "inquiry_name",
-    label: "Inquiry",
-    accessor: "inquiry_name",
-    width: 200,
-    sortable: true,
-    sortKey: "inquiry",
-    render: textCell,
-  },
-  {
-    id: "formatted_followup_date",
-    label: "Followup Date",
-    accessor: "formatted_followup_date",
-    sortKey: "followup_date",
-    width: 140,
-    sortable: true,
-    render: textCell,
-  },
-  {
-    id: "formatted_next_followup_date",
-    label: "Next Followup",
-    accessor: "formatted_next_followup_date",
-    sortKey: "next_followup_date",
-    width: 140,
-    sortable: true,
-    render: textCell,
-  },
-  {
-    id: "formatted_time",
-    label: "Time",
-    accessor: "formatted_time",
-    width: 100,
-    render: textCell,
-  },
-  {
-    id: "priority",
-    label: "Priority",
-    accessor: "priority",
-    width: 100,
-    sortable: true,
-    render: textCell,
-  },
-  {
-    id: "executive_name",
-    label: "Executive",
-    accessor: "executive_name",
-    width: 160,
-    sortable: true,
-    sortKey: "executive",
-    render: textCell,
-  },
-  {
-    id: "followup_type",
-    label: "Type",
-    accessor: "followup_type",
-    width: 120,
-    sortable: true,
-    render: textCell,
-  },
-  {
-    id: "followup_details",
-    label: "Details",
-    accessor: "followup_details",
-    width: 250,
     render: textCell,
   },
 ];
