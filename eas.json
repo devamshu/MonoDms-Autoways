@@ -14,8 +14,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://newdms.pagodalabs.com.np/",
-        "EXPO_PUBLIC_IMAGE_BASE_URL": "https://newdms.pagodalabs.com.np/"
+        "EXPO_PUBLIC_API_BASE_URL": "https://dms-api.autoways.com.np/",
+        "EXPO_PUBLIC_IMAGE_BASE_URL": "https://dms-api.autoways.com.np/"
       }
     },
     "production": {
@@ -24,8 +24,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://newdms.pagodalabs.com.np/",
-        "EXPO_PUBLIC_IMAGE_BASE_URL": "https://newdms.pagodalabs.com.np/"
+        "EXPO_PUBLIC_API_BASE_URL": "https://dms-api.autoways.com.np/",
+        "EXPO_PUBLIC_IMAGE_BASE_URL": "https://dms-api.autoways.com.np/"
       }
     }
   },

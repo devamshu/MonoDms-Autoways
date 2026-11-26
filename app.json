@@ -18,7 +18,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.oja.expo.dev.dms",
       "softwareKeyboardLayoutMode": "resize",
@@ -61,7 +60,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "8909c36c-9a24-491a-9312-f824e0bc6e19"
+        "projectId": "591aa20f-7c6b-47b2-85ee-52c1aa1fda3d"
       }
     }
   }
