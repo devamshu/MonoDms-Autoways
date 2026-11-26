@@ -1,9 +1,11 @@
+import { LEGAL_LINKS } from "../../../../constants/legal";
+import { openLegalLink } from "../../../../app/utils/legal";
 import { ProfileButton } from "../../components/custom/buttons/profileBtn";
 import { GenericModal } from "../../components/custom/model/genericModal";
 import { ProfileHeader } from "../../components/custom/profile/profileHeader";
 import { toast } from "../../components/custom/toast";
 import { router } from "expo-router";
-import { Grid2x2, Lock, LogOut, UserCircle } from "lucide-react-native";
+import { Grid2x2, Lock, LogOut, UserCircle, FileText, ShieldCheck } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { Text, useTheme, YStack } from "tamagui";
 import { ScreenScrollView } from "../../../../components/workspace/screen-scroll-view";
@@ -108,6 +110,24 @@ export default function SettingsPage() {
           icon={<Grid2x2 size={22} color={theme?.secondaryText?.val} />}
           text="Switch App"
           onPress={handleSwitchApp}
+        />
+
+        <YStack paddingHorizontal="$5" paddingTop="$4" paddingBottom="$3">
+          <Text fontSize={17} fontWeight="700" color="$descriptionText">
+            Legal
+          </Text>
+        </YStack>
+
+        <ProfileButton
+          icon={<ShieldCheck size={22} color={theme?.secondaryText?.val} />}
+          text="Privacy Policy"
+          onPress={() => openLegalLink(LEGAL_LINKS.privacyPolicy)}
+        />
+
+        <ProfileButton
+          icon={<FileText size={22} color={theme?.secondaryText?.val} />}
+          text="Terms & Conditions"
+          onPress={() => openLegalLink(LEGAL_LINKS.termsAndConditions)}
         />
 
         <ProfileButton

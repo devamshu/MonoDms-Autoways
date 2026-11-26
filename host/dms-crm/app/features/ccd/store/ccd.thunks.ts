@@ -13,7 +13,10 @@ import {
   CCDResponsePayload,
   Followup,
   FollowupListParams,
-  FollowupPayload,
+  FollowupTabCounts,
+  LogFollowupPayload,
+  RescheduleFollowupPayload,
+  ScheduleFollowupPayload,
   JobCardDetail,
   SalesDetail,
 } from "../types";
@@ -222,18 +225,85 @@ export const fetchFollowups = createAsyncThunk<
   }
 });
 
-export const createFollowup = createAsyncThunk<
-  Followup,
-  FollowupPayload,
+export const fetchFollowupTabCounts = createAsyncThunk<
+  FollowupTabCounts,
+  void,
   { rejectValue: string }
->("ccd/createFollowup", async (payload, { dispatch, rejectWithValue }) => {
+>("ccd/fetchFollowupTabCounts", async (_, { rejectWithValue }) => {
   try {
-    const response = await ccdApi.createFollowup(payload);
+    const response = await ccdApi.fetchFollowupTabCounts();
     if (response.success && response.data) {
-      dispatch(fetchFollowups());
       return response.data;
     }
-    return rejectWithValue(response.message || "Failed to create followup");
+    return rejectWithValue(response.message || "Failed to fetch followup counts");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+// Re-runs the list query the screen last made (the slice remembers its params)
+// plus the tab counts, so a mutation made from a drawer refreshes the table
+// without that drawer needing to know which tab/page/filters are showing.
+export const refreshFollowups = createAsyncThunk<
+  void,
+  void,
+  { rejectValue: string }
+>("ccd/refreshFollowups", async (_, { dispatch, getState }) => {
+  const params = (
+    getState() as { crmCcd: { followupParams?: FollowupListParams } }
+  ).crmCcd.followupParams;
+  await Promise.all([
+    dispatch(fetchFollowups(params)),
+    dispatch(fetchFollowupTabCounts()),
+  ]);
+});
+
+export const logFollowup = createAsyncThunk<
+  void,
+  LogFollowupPayload,
+  { rejectValue: string }
+>("ccd/logFollowup", async (payload, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await ccdApi.logFollowup(payload);
+    if (response.success) {
+      await dispatch(refreshFollowups());
+      return;
+    }
+    return rejectWithValue(response.message || "Failed to log follow-up");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+export const rescheduleFollowup = createAsyncThunk<
+  void,
+  RescheduleFollowupPayload,
+  { rejectValue: string }
+>("ccd/rescheduleFollowup", async (payload, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await ccdApi.rescheduleFollowup(payload);
+    if (response.success) {
+      await dispatch(refreshFollowups());
+      return;
+    }
+    return rejectWithValue(response.message || "Failed to reschedule follow-up");
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error));
+  }
+});
+
+export const scheduleFollowup = createAsyncThunk<
+  void,
+  ScheduleFollowupPayload,
+  { rejectValue: string }
+>("ccd/scheduleFollowup", async (payload, { dispatch, rejectWithValue }) => {
+  try {
+    const response = await ccdApi.scheduleFollowup(payload);
+    if (response.success) {
+      await dispatch(refreshFollowups());
+      return;
+    }
+    return rejectWithValue(response.message || "Failed to schedule follow-up");
   } catch (error) {
     return rejectWithValue(getErrorMessage(error));
   }

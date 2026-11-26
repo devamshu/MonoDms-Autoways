@@ -10,8 +10,12 @@ import {
   CCDResponseListParams,
   CCDResponsePayload,
   Followup,
+  FollowupInquiryOption,
   FollowupListParams,
-  FollowupPayload,
+  FollowupTabCounts,
+  LogFollowupPayload,
+  RescheduleFollowupPayload,
+  ScheduleFollowupPayload,
   JobCardDetail,
   SalesDetail,
 } from "../types";
@@ -283,23 +287,121 @@ export const ccdApi = {
     };
   },
 
-  async createFollowup(payload: FollowupPayload): Promise<{
+  async fetchFollowupTabCounts(): Promise<{
     success: boolean;
-    data?: Followup;
+    data?: FollowupTabCounts;
     message?: string;
   }> {
-    const response = await apiClient.post<Followup>(
-      "/crm/followup/",
-      payload,
+    const response = await apiClient.get<{ data: FollowupTabCounts }>(
+      "/crm/followup/tab-counts/",
     );
 
-    if (response.success && response.data) {
-      return { success: true, data: response.data };
+    if (response.success && response.data?.data) {
+      return { success: true, data: response.data.data };
     }
 
     return {
       success: false,
-      message: getApiErrorMessage(response, "Failed to create followup"),
+      message: getApiErrorMessage(response, "Failed to fetch followup counts"),
+    };
+  },
+
+  // Completes the inquiry's pending followup in place (or records a new DONE
+  // one), optionally scheduling the next pending one.
+  async logFollowup({ inquiryId, ...payload }: LogFollowupPayload): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
+    const response = await apiClient.post(
+      `/crm/inquiry/${inquiryId}/log-followup/`,
+      payload,
+    );
+
+    if (response.success) return { success: true };
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to log follow-up"),
+    };
+  },
+
+  async rescheduleFollowup({
+    id,
+    ...payload
+  }: RescheduleFollowupPayload): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
+    const response = await apiClient.post(
+      `/crm/followup/${id}/reschedule/`,
+      payload,
+    );
+
+    if (response.success) return { success: true };
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to reschedule follow-up"),
+    };
+  },
+
+  // Creates a new PENDING row only. The backend rejects it with a 400 when the
+  // inquiry already has one pending; callers pre-check for that.
+  async scheduleFollowup({
+    inquiryId,
+    ...payload
+  }: ScheduleFollowupPayload): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
+    const response = await apiClient.post(
+      `/crm/inquiry/${inquiryId}/schedule-followup/`,
+      payload,
+    );
+
+    if (response.success) return { success: true };
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to schedule follow-up"),
+    };
+  },
+
+  // The Add Followup picker's server-side inquiry search.
+  async searchInquiries(search: string): Promise<{
+    success: boolean;
+    data?: FollowupInquiryOption[];
+    message?: string;
+  }> {
+    const response = await apiClient.get<{ results: any[] }>("/crm/inquiry/", {
+      params: { page: 1, page_size: 20, search: search.trim() || undefined },
+    });
+
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: response.data.results.map((i) => {
+          const vehicle = i.vehicle_details?.[0];
+          const vehicleLabel = vehicle
+            ? [vehicle.vehicle_name, vehicle.color_name]
+                .filter(Boolean)
+                .join(" · ")
+            : "";
+          return {
+            id: i.id,
+            inq_no: i.inq_no ?? null,
+            name: i.name || `Inquiry #${i.id}`,
+            kind: i.kind ? Number(i.kind) : null,
+            status: i.status ?? null,
+            vehicleLabel: vehicleLabel || null,
+          };
+        }),
+      };
+    }
+
+    return {
+      success: false,
+      message: getApiErrorMessage(response, "Failed to search inquiries"),
     };
   },
 };

@@ -8,14 +8,19 @@ import {
   CCDModuleSettings,
   CCDResponseDetail,
   Followup,
+  FollowupListParams,
+  FollowupTabCounts,
   JobCardDetail,
   SalesDetail,
 } from "../types";
 import {
-  createFollowup,
   fetchCCDResponseById,
   fetchCCDResponses,
   fetchFollowups,
+  fetchFollowupTabCounts,
+  logFollowup,
+  rescheduleFollowup,
+  scheduleFollowup,
   fetchModuleCustomers,
   fetchModuleFields,
   fetchModules,
@@ -63,6 +68,9 @@ interface CCDState {
   followupsCount: number;
   followupsLoading: boolean;
   followupSubmitting: boolean;
+  followupTabCounts: FollowupTabCounts | null;
+  // Last list query made, so mutations can refresh exactly what is on screen.
+  followupParams?: FollowupListParams;
 
   // Loading states
   loading: boolean;
@@ -90,6 +98,7 @@ const initialState: CCDState = {
   followupsCount: 0,
   followupsLoading: false,
   followupSubmitting: false,
+  followupTabCounts: null,
   loading: false,
   actionLoading: false,
   submitting: false,
@@ -312,8 +321,9 @@ const ccdSlice = createSlice({
 
     // ============ Fetch Followups ============
     builder
-      .addCase(fetchFollowups.pending, (state) => {
+      .addCase(fetchFollowups.pending, (state, action) => {
         state.followupsLoading = true;
+        state.followupParams = action.meta.arg;
         state.error = null;
       })
       .addCase(fetchFollowups.fulfilled, (state, action) => {
@@ -326,19 +336,32 @@ const ccdSlice = createSlice({
         state.error = action.payload ?? "Failed to fetch followups";
       });
 
-    // ============ Create Followup ============
+    // ============ Followup tab counts ============
+    builder.addCase(fetchFollowupTabCounts.fulfilled, (state, action) => {
+      state.followupTabCounts = action.payload;
+    });
+
+    // ============ Log / Reschedule / Schedule ============
+    // One flag for all three: only one followup action is ever in flight.
     builder
-      .addCase(createFollowup.pending, (state) => {
-        state.followupSubmitting = true;
-        state.error = null;
-      })
-      .addCase(createFollowup.fulfilled, (state) => {
-        state.followupSubmitting = false;
-      })
-      .addCase(createFollowup.rejected, (state, action) => {
-        state.followupSubmitting = false;
-        state.error = action.payload ?? "Failed to create followup";
-      });
+      .addMatcher(
+        (action) =>
+          [logFollowup, rescheduleFollowup, scheduleFollowup].some((t) =>
+            t.pending.match(action),
+          ),
+        (state) => {
+          state.followupSubmitting = true;
+        },
+      )
+      .addMatcher(
+        (action) =>
+          [logFollowup, rescheduleFollowup, scheduleFollowup].some(
+            (t) => t.fulfilled.match(action) || t.rejected.match(action),
+          ),
+        (state) => {
+          state.followupSubmitting = false;
+        },
+      );
   },
 });
 
