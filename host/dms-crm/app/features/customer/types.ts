@@ -189,6 +189,7 @@ export type StagedVehicle = {
 
 export type CustomerFormData = {
   name: string;
+  contact_person: string;
   inquiry_kind: string;
   address: string;
   source_type: string;

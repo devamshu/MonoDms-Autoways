@@ -60,6 +60,7 @@ const initialFormState: MultiStepFormState = {
   currentStep: 1,
   formData: {
     name: "",
+    contact_person: "",
     inquiry_kind: "",
     address: "",
     source_type: "",

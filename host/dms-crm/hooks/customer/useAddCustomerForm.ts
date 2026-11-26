@@ -13,6 +13,7 @@ import { useState } from "react";
 
 export const INITIAL_FORM: CustomerFormData = {
   name: "",
+  contact_person: "",
   inquiry_kind: "",
   address: "",
   city: "",
@@ -88,6 +89,7 @@ export function useAddCustomerForm(onClose: () => void) {
 
     return {
       name: form.name,
+      ...(form.contact_person && { contact_person: form.contact_person }),
       ...(form.address && { address: form.address }),
       ...(form.city && { city: Number(form.city) }),
       phone: phones,

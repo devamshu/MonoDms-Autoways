@@ -589,6 +589,9 @@ export const submitMultiStepForm = createAsyncThunk<
 
       const payload: AddCustomerPayload = {
         name: formData.name,
+        ...(formData.contact_person.trim() && {
+          contact_person: formData.contact_person.trim(),
+        }),
         address: formData.address || undefined,
         ...(formData.city && { city: parseInt(formData.city, 10) }),
         phone: phoneEntries.map(

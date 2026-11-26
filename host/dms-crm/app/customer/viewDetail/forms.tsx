@@ -1368,6 +1368,7 @@ function selectedSummary(
 
 const EMPTY_CUSTOMER_FORM: CustomerFormData = {
   name: "",
+  contact_person: "",
   inquiry_kind: "",
   address: "",
   city: "",

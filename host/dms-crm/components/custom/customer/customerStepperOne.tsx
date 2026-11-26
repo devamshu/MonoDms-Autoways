@@ -57,6 +57,17 @@ export function CustomerStepperOne({
         />
       </YStack>
 
+      <YStack gap="$1">
+        <Text fontSize="$3" color="$color">
+          Contact Person
+        </Text>
+        <AppInput
+          value={form.contact_person}
+          onChangeText={(v) => onChange("contact_person", v)}
+          placeholder="Enter contact person"
+        />
+      </YStack>
+
       <Dropdown
         label="Inquiry Kind"
         required
