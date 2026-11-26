@@ -249,7 +249,7 @@ export function Dropdown({
         onRequestClose={() => setOpen(false)}
       >
         <Pressable
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           onPress={() => setOpen(false)}
         />
         <RNView
@@ -558,7 +558,7 @@ export function SearchableDropdown({
         onRequestClose={handleClose}
       >
         <Pressable
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           onPress={handleClose}
         />
         <RNView
