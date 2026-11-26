@@ -1,6 +1,8 @@
+import { useAppSelector } from "@/app/features/hooks";
 import { persistor, store } from "@/host/dms-crm/app/features/store";
 import {
   customersFilterConfig,
+  getFollowupFilterConfig,
   inquiryFilterConfig,
   usersFilterConfig,
 } from "@/host/dms-crm/components/custom/filter/filter.config";
@@ -14,7 +16,7 @@ import Sidebar from "@/host/dms-crm/components/custom/sideBar";
 import { SidebarProvider } from "@/host/dms-crm/components/custom/sideBarContext";
 import { ToastProvider } from "@/host/dms-crm/components/custom/toast";
 import { Slot, usePathname, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { YStack } from "tamagui";
@@ -51,7 +53,21 @@ function AppContent() {
     }
   }, [pathname, clearAllFilters]);
 
-  const filterConfig = ROUTE_FILTER_CONFIGS[pathname];
+  // Executive filtering is admin-only (non-admins are server-scoped to their
+  // own followups), so this one config depends on who is viewing.
+  const profile = useAppSelector((state) => state.crmProfile.profile);
+  const isAdmin = !!(
+    profile?.is_superuser || profile?.authorities?.includes("SUPERUSER")
+  );
+  const followupFilterConfig = useMemo(
+    () => getFollowupFilterConfig(isAdmin),
+    [isAdmin],
+  );
+
+  const filterConfig =
+    pathname === "/followup"
+      ? followupFilterConfig
+      : ROUTE_FILTER_CONFIGS[pathname];
   const shouldShowFilter = !!filterConfig;
   const isFullscreen = FULLSCREEN_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(r + "/"),

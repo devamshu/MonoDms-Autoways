@@ -557,21 +557,49 @@ export type CCDModulesListResponse = CCDModule[];
 
 // ============ Followup Types ============
 
+export type FollowupStatus = "pending" | "done" | "cancelled";
+
+export interface FollowupVehicleDetail {
+  id: number;
+  vehicle_name: string | null;
+  variant_name: string | null;
+  color_name: string | null;
+  manufacturing_year: string | null;
+}
+
+// One row of GET /crm/followup/. A pending row is a future commitment
+// (due_date set, followup_date null); logging completes it in place.
 export interface Followup {
   id: number;
   inquiry: number;
-  inquiry_name: string;
-  followup_date: string;
+  inquiry_name: string | null;
+  inquiry_no: string | null;
+  inquiry_kind: number | null;
+  inquiry_kind_name: string | null;
+  inquiry_contact: string | null;
+  vehicle_details: FollowupVehicleDetail[];
+  is_deal_vehicle: boolean;
+  // Remarks from the most recent COMPLETED contact; a pending row's own
+  // followup_details is only a "Scheduled follow-up." placeholder.
+  last_contact_remarks: string | null;
+  reschedule_info: { count: number; original_due_date: string } | null;
+  reschedule_reason: string | null;
+  followup_date: string | null;
   followup_date_np: string | null;
   next_followup_date: string | null;
   next_followup_date_np: string | null;
-  time: string;
+  time: string | null;
   priority: string;
-  executive: number;
-  executive_name: string;
-  followup_type: string;
+  executive: number | null;
+  executive_name: string | null;
+  contact_type: string | null;
   followup_details: string;
   is_activity: boolean;
+  status: FollowupStatus;
+  due_date: string | null;
+  cancellation_reason: string | null;
+  is_overdue: boolean;
+  updated_at: string;
   fiscal_year: number | null;
   created_at: string;
 }
@@ -595,4 +623,60 @@ export interface FollowupListParams {
   page_size?: number;
   search?: string;
   ordering?: string;
+  status?: FollowupStatus;
+  // Pending-only buckets, special-cased by the backend (Nepal calendar day).
+  overdue?: "true";
+  due?: "today" | "upcoming";
+  inquiry__kind__id?: string | number;
+  contact_type?: string;
+  executive__id?: string | number;
+  inquiry__id?: string | number;
+  // CustomDateFilter on followup_date: a preset, or an explicit range that
+  // the backend ignores whenever `date` is set.
+  date?: "today" | "tomorrow" | "thisweek" | "thismonth";
+  Start_date?: string;
+  End_date?: string;
+}
+
+export interface FollowupTabCounts {
+  all: number;
+  overdue: number;
+  today: number;
+  upcoming: number;
+  done: number;
+  cancelled: number;
+}
+
+export interface LogFollowupPayload {
+  // INQUIRY id, not a followup id: the backend resolves which pending row.
+  inquiryId: number;
+  contact_type: string;
+  remarks: string;
+  kind?: number;
+  next_followup_date?: string;
+  next_followup_type?: string;
+}
+
+export interface RescheduleFollowupPayload {
+  id: number;
+  due_date: string;
+  reason?: string;
+}
+
+export interface ScheduleFollowupPayload {
+  inquiryId: number;
+  contact_type: string;
+  due_date: string; // YYYY-MM-DD
+  due_time: string; // HH:MM, 24h
+  purpose?: string;
+}
+
+// An inquiry as offered by the Add Followup picker.
+export interface FollowupInquiryOption {
+  id: number;
+  inq_no: string | null;
+  name: string;
+  kind: number | null;
+  status: "open" | "booked" | "sold" | "closed" | "lost" | null;
+  vehicleLabel: string | null;
 }

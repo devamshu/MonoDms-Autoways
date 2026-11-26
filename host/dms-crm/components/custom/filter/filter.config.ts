@@ -144,6 +144,96 @@ export const inquiryFilterConfig = new FilterConfigBuilder("Filter Inquiry")
 
   .build();
 
+// Mirrors the web Followup FilterDrawer (src/pages/CRM/Followup/
+// FollowupFilterDrawer.tsx). Field ids are the /crm/followup/ query params.
+// The Executive filter is admin-only on web (non-admins are already scoped to
+// their own followups server-side), so the config is built per viewer.
+const FOLLOWUP_CONTACT_TYPES = [
+  "Call",
+  "Viber/WhatsApp",
+  "Showroom visit",
+  "Home visit",
+  "SMS",
+  "Email",
+  "Meeting",
+];
+
+export const getFollowupFilterConfig = (isAdmin: boolean) => {
+  const builder = new FilterConfigBuilder("Filter Followups")
+    .addCustomFilter({
+      id: "inquiry__kind__id",
+      label: "Inquiry Kind",
+      type: "select",
+      placeholder: "Any",
+      optionsLoader: async () =>
+        masterOptions((await masterApi.fetchInquiryKinds()).data),
+    })
+    .addCustomFilter({
+      id: "contact_type",
+      label: "Contact Type",
+      type: "select",
+      placeholder: "Any",
+      options: FOLLOWUP_CONTACT_TYPES.map((t) => ({ label: t, value: t })),
+    })
+    .addCustomFilter({
+      id: "overdue",
+      label: "Overdue only",
+      type: "select",
+      placeholder: "Any",
+      options: [
+        { label: "Overdue pending follow-ups only", value: "true" },
+      ],
+    })
+    .addCustomFilter({
+      id: "inquiry__id",
+      label: "Customer",
+      type: "search-select",
+      placeholder: "Search by customer name or inquiry number",
+      // One page, searched client-side in the picker.
+      optionsLoader: async () => {
+        const response = await apiClient.get<{ results: any[] }>(
+          "/crm/inquiry/",
+          { params: { page: 1, page_size: 100 } },
+        );
+        const rows =
+          response.success && response.data ? response.data.results : [];
+        return rows.map((i) => ({
+          label: i.inq_no ? `${i.inq_no} — ${i.name}` : i.name,
+          value: String(i.id),
+        }));
+      },
+    });
+
+  if (isAdmin) {
+    builder.addCustomFilter({
+      id: "executive__id",
+      label: "Executive",
+      type: "search-select",
+      placeholder: "Any",
+      optionsLoader: async () => {
+        const response = await apiClient.get<{ results: EmployeeRow[] }>(
+          "/master-employee/",
+          { params: { page: 1, page_size: 200 } },
+        );
+        const rows =
+          response.success && response.data ? response.data.results : [];
+        return rows.map((e) => ({
+          label:
+            [e.first_name, e.middle_name, e.last_name]
+              .filter(Boolean)
+              .join(" ")
+              .trim() ||
+            e.name ||
+            `Employee ${e.id}`,
+          value: String(e.id),
+        }));
+      },
+    });
+  }
+
+  return builder.build();
+};
+
 // Structure for undersatnding whtas the process
 
 //   components/custom/filter/
